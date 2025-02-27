@@ -9,6 +9,10 @@ const anthropic = new Anthropic({
   apiKey: env.ANTHROPIC_API_KEY,
 });
 
+// Define move enum
+const MoveEnum = z.enum(["up", "right", "down", "left"]);
+type Move = z.infer<typeof MoveEnum>;
+
 export const aiRouter = createTRPCRouter({
   generateClaudeResponse: publicProcedure
     .input(z.object({
@@ -40,6 +44,7 @@ Recall that
  - All numbers on the board are powers of 2.
  - Moving will slide all tiles in the chosen direction and tiles will merge if they have the same number and are pushed into eachother.
  - After a move, a new tile will appear in a random empty square with a value of either 2 (90% chance) or 4 (10% chance).
+ - Moving in a direction where no tiles can slide is an invalid move and should be avoided.
 
 The board is a 4x4 grid that is shown below.
 Each square in the grid is a number and commas are used to separate the numbers in each row.
@@ -97,6 +102,8 @@ ${input.board.slice(12, 16).join(',')}
           }
         }
 
+        yield "<CONTENT_END>";
+
         // Get the complete message to access full usage information
         const message = await stream.finalMessage();
         console.log("USAGE", {
@@ -106,56 +113,65 @@ ${input.board.slice(12, 16).join(',')}
           cache_read_input_tokens: message.usage.cache_read_input_tokens
         });
 
-        yield "<CONTENT_END>";
-
       } catch (error) {
         console.error("Error generating Claude response:", error);
         yield `Error: ${error instanceof Error ? error.message : String(error)}`;
       }
     }),
 
-  generateClaudeMove: publicProcedure
+  extractClaudeMove: publicProcedure
     .input(z.object({
-      prompt: z.string(),
+      answerText: z.string(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input }): Promise<Move> => {
       try {
         // Define the move tool inline
-        const moveTool = {
-          name: "submit_move",
-          description: "Submit the final integer move",
-          input_schema: {
-            type: "object",
-            properties: {
-              move: {
-                type: "integer",
-                description: "The integer representing the move"
-              }
-            },
-            required: ["move"]
-          }
-        } as const;
 
         // Create a message with system prompt to make the tool call
         const response = await anthropic.messages.create({
           model: "claude-3-5-haiku-latest",
           max_tokens: 1024,
-          system: `
-You are an assistant that helps analyze situations and determine the best move.
-You must use the submit_move tool to provide your answer as a single integer.
+          system: `\
+You extract the move direction from the provided response.
+
+The response will ask for one of the following:
+- "up"
+- "right"
+- "down"
+- "left"
           `,
-          tools: [moveTool],
+          tools: [{
+            name: "submit_move",
+            description: "Submit the suggested move direction.",
+            input_schema: {
+              type: "object",
+              properties: {
+                move: {
+                  type: "string",
+                  enum: ["up", "right", "down", "left"],
+                  description: "The direction to move"
+                }
+              },
+              required: ["move"]
+            }
+          }],
           tool_choice: {
             type: "tool",
             name: "submit_move"
           },
           messages: [{
             role: "user",
-            content: input.prompt
+            content: `\
+Extract the move direction from the following response:
+
+<RESPONSE>
+${input.answerText}
+</RESPONSE>
+`
           }]
         });
 
-        console.log("USAGE", {
+        console.log("MOVE USAGE", {
           input_tokens: response.usage.input_tokens,
           output_tokens: response.usage.output_tokens,
           cache_creation_input_tokens: response.usage.cache_creation_input_tokens,
@@ -169,9 +185,9 @@ You must use the submit_move tool to provide your answer as a single integer.
           throw new Error("No tool use request received");
         }
 
-        // Define Zod schema for the tool input inline and extract the integer move
+        // Define Zod schema for the tool input inline and extract the move direction
         const moveSchema = z.object({
-          move: z.number().int()
+          move: MoveEnum
         });
         
         const parsedInput = moveSchema.parse(toolUseBlock.input);

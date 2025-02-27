@@ -6,10 +6,10 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const INITIAL_BOARD = [
-  4, 4, 0, 2,
-  2, 0, 0, 0,
   0, 0, 0, 0,
-  0, 2, 0, 0,
+  2, 4, 8, 16,
+  32, 64, 128, 256,
+  512, 1024, 2048, 4096,
 ];
 
 export default function Page() {
@@ -24,7 +24,8 @@ export default function Page() {
   }, [streamedResponse]);
 
   const handleGenerateResponse = async () => {
-    await generateResponse(INITIAL_BOARD);
+    const result = await generateResponse(INITIAL_BOARD);
+    console.log("Move result:", result);
   };
 
   return (
@@ -101,12 +102,17 @@ const useClaude = () => {
     },
   });
 
+  const extractMoveMutation = api.ai.extractClaudeMove.useMutation();
+
   const generateResponse = async (board: number[]) => {
     try {
       // The mutation returns an AsyncGenerator
       const generator = await generateResponseMutation.mutateAsync({
         board,
       });
+
+      let answerText = "";
+      let isInAnswerBlock = false;
 
       // Process each chunk from the generator
       for await (const chunk of generator) {
@@ -118,31 +124,51 @@ const useClaude = () => {
         // Check if this is a thinking chunk
         if (chunk === "\n<THINKING>\n") {
           setIsThinking(true);
-          // Don't add thinking to the final response
+          // Add thinking tag to the response
+          setStreamedResponse((prev) => prev + chunk);
           continue;
         }
         
         // Check if thinking has ended
         if (chunk === "\n</THINKING>\n") {
           setIsThinking(false);
+          setStreamedResponse((prev) => prev + chunk);
+          continue;
+        }
+
+        // Check if we're entering the answer block
+        if (chunk === "\n<ANSWER>\n") {
+          isInAnswerBlock = true;
+          setStreamedResponse((prev) => prev + chunk);
+          continue;
+        }
+
+        // Check if we're exiting the answer block
+        if (chunk === "\n</ANSWER>\n") {
+          isInAnswerBlock = false;
+          setStreamedResponse((prev) => prev + chunk);
           continue;
         }
         
-        // If it was thinking and now we're getting a response, add a line break
-        if (isThinking && chunk.startsWith("Response: ")) {
-          setIsThinking(false);
-          setStreamedResponse((prev) => prev + "\n");
-          // Remove the "Response: " prefix
-          const responseText = chunk.replace("Response: ", "");
-          setStreamedResponse((prev) => prev + responseText);
-          continue;
+        // If we're in the answer block, collect the text
+        if (isInAnswerBlock) {
+          answerText += chunk;
         }
-        
+
         setStreamedResponse((prev) => prev + chunk);
       }
+
+      // Extract the move from the answer text
+      if (answerText) {
+        const move = await extractMoveMutation.mutateAsync({ answerText });
+        return { move };
+      }
+
+      return { move: null };
     } catch (error) {
       console.error("Error streaming response:", error);
       setStreamedResponse((prev) => prev + "\nError: Failed to generate response.");
+      return { move: null };
     }
   };
 
