@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+const BOARD_SIZE = 4;
+
 export const useGame = () => {
   const [board, setBoard] = useState<number[][]>([]);
   const [score, setScore] = useState<number>(0);
@@ -18,7 +20,7 @@ export const useGame = () => {
     row: number;
     col: number;
   }): number => {
-    if (row < 0 || row >= 4 || col < 0 || col >= 4 || !board[row]) {
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE || !board[row]) {
       return 0;
     }
     return board[row][col] ?? 0;
@@ -35,7 +37,7 @@ export const useGame = () => {
     col: number;
     value: number;
   }): void => {
-    if (row < 0 || row >= 4 || col < 0 || col >= 4 || !board[row]) {
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE || !board[row]) {
       return;
     }
     board[row][col] = value;
@@ -48,7 +50,9 @@ export const useGame = () => {
 
   const initializeGame = () => {
     // Create empty board
-    const newBoard = Array(4).fill(0).map(() => Array(4).fill(0));
+    const newBoard = Array(BOARD_SIZE)
+      .fill(0)
+      .map(() => Array(BOARD_SIZE).fill(0));
     
     // Add two initial tiles
     addRandomTile({ currentBoard: newBoard });
@@ -68,8 +72,8 @@ export const useGame = () => {
     const emptyCells: [number, number][] = [];
     
     // Find all empty cells
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 4; j++) {
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
         if (getBoardValue({ board: currentBoard, row: i, col: j }) === 0) {
           emptyCells.push([i, j]);
         }
@@ -87,7 +91,8 @@ export const useGame = () => {
     const [row, col] = position;
     
     // Place a 2 (90% chance) or 4 (10% chance)
-    setBoardValue({ board: currentBoard, row, col, value: Math.random() < 0.9 ? 2 : 4 });
+    const value = Math.random() < 0.9 ? 2 : 4;
+    setBoardValue({ board: currentBoard, row, col, value });
   };
 
   const checkGameOver = ({
@@ -96,23 +101,27 @@ export const useGame = () => {
     currentBoard: number[][];
   }): boolean => {
     // Check if there are any empty cells
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 4; j++) {
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
         if (getBoardValue({ board: currentBoard, row: i, col: j }) === 0) return false;
       }
     }
     
     // Check if there are any possible merges horizontally
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 3; j++) {
-        if (getBoardValue({ board: currentBoard, row: i, col: j }) === getBoardValue({ board: currentBoard, row: i, col: j + 1 })) return false;
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE - 1; j++) {
+        const current = getBoardValue({ board: currentBoard, row: i, col: j });
+        const next = getBoardValue({ board: currentBoard, row: i, col: j + 1 });
+        if (current === next) return false;
       }
     }
     
     // Check if there are any possible merges vertically
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 4; j++) {
-        if (getBoardValue({ board: currentBoard, row: i, col: j }) === getBoardValue({ board: currentBoard, row: i + 1, col: j })) return false;
+    for (let i = 0; i < BOARD_SIZE - 1; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        const current = getBoardValue({ board: currentBoard, row: i, col: j });
+        const below = getBoardValue({ board: currentBoard, row: i + 1, col: j });
+        if (current === below) return false;
       }
     }
     
@@ -124,8 +133,8 @@ export const useGame = () => {
   }: {
     currentBoard: number[][];
   }): boolean => {
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 4; j++) {
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
         if (getBoardValue({ board: currentBoard, row: i, col: j }) === 2048) return true;
       }
     }
@@ -138,93 +147,126 @@ export const useGame = () => {
     let newScore = score;
     
     if (direction === "left") {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < BOARD_SIZE; i++) {
         // Merge tiles
-        for (let j = 1; j < 4; j++) {
+        for (let j = 1; j < BOARD_SIZE; j++) {
           if (getBoardValue({ board: newBoard, row: i, col: j }) !== 0) {
             let k = j;
             while (k > 0 && getBoardValue({ board: newBoard, row: i, col: k - 1 }) === 0) {
-              setBoardValue({ board: newBoard, row: i, col: k - 1, value: getBoardValue({ board: newBoard, row: i, col: k }) });
+              const currentValue = getBoardValue({ board: newBoard, row: i, col: k });
+              setBoardValue({ board: newBoard, row: i, col: k - 1, value: currentValue });
               setBoardValue({ board: newBoard, row: i, col: k, value: 0 });
               k--;
               moved = true;
             }
             
-            if (k > 0 && getBoardValue({ board: newBoard, row: i, col: k - 1 }) === getBoardValue({ board: newBoard, row: i, col: k })) {
-              const mergedValue = getBoardValue({ board: newBoard, row: i, col: k }) * 2;
-              setBoardValue({ board: newBoard, row: i, col: k - 1, value: mergedValue });
-              newScore += mergedValue;
-              setBoardValue({ board: newBoard, row: i, col: k, value: 0 });
-              moved = true;
+            if (k > 0) {
+              const prevValue = getBoardValue({ board: newBoard, row: i, col: k - 1 });
+              const currValue = getBoardValue({ board: newBoard, row: i, col: k });
+              
+              if (prevValue === currValue) {
+                const mergedValue = currValue * 2;
+                setBoardValue({ board: newBoard, row: i, col: k - 1, value: mergedValue });
+                newScore += mergedValue;
+                setBoardValue({ board: newBoard, row: i, col: k, value: 0 });
+                moved = true;
+              }
             }
           }
         }
       }
     } else if (direction === "right") {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < BOARD_SIZE; i++) {
         // Merge tiles
-        for (let j = 2; j >= 0; j--) {
+        for (let j = BOARD_SIZE - 2; j >= 0; j--) {
           if (getBoardValue({ board: newBoard, row: i, col: j }) !== 0) {
             let k = j;
-            while (k < 3 && getBoardValue({ board: newBoard, row: i, col: k + 1 }) === 0) {
-              setBoardValue({ board: newBoard, row: i, col: k + 1, value: getBoardValue({ board: newBoard, row: i, col: k }) });
+            while (
+              k < BOARD_SIZE - 1 && 
+              getBoardValue({ board: newBoard, row: i, col: k + 1 }) === 0
+            ) {
+              const currentValue = getBoardValue({ board: newBoard, row: i, col: k });
+              setBoardValue({ board: newBoard, row: i, col: k + 1, value: currentValue });
               setBoardValue({ board: newBoard, row: i, col: k, value: 0 });
               k++;
               moved = true;
             }
             
-            if (k < 3 && getBoardValue({ board: newBoard, row: i, col: k + 1 }) === getBoardValue({ board: newBoard, row: i, col: k })) {
-              const mergedValue = getBoardValue({ board: newBoard, row: i, col: k }) * 2;
-              setBoardValue({ board: newBoard, row: i, col: k + 1, value: mergedValue });
-              newScore += mergedValue;
-              setBoardValue({ board: newBoard, row: i, col: k, value: 0 });
-              moved = true;
+            if (k < BOARD_SIZE - 1) {
+              const nextValue = getBoardValue({ board: newBoard, row: i, col: k + 1 });
+              const currValue = getBoardValue({ board: newBoard, row: i, col: k });
+              
+              if (nextValue === currValue) {
+                const mergedValue = currValue * 2;
+                setBoardValue({ board: newBoard, row: i, col: k + 1, value: mergedValue });
+                newScore += mergedValue;
+                setBoardValue({ board: newBoard, row: i, col: k, value: 0 });
+                moved = true;
+              }
             }
           }
         }
       }
     } else if (direction === "up") {
-      for (let j = 0; j < 4; j++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
         // Merge tiles
-        for (let i = 1; i < 4; i++) {
+        for (let i = 1; i < BOARD_SIZE; i++) {
           if (getBoardValue({ board: newBoard, row: i, col: j }) !== 0) {
             let k = i;
-            while (k > 0 && getBoardValue({ board: newBoard, row: k - 1, col: j }) === 0) {
-              setBoardValue({ board: newBoard, row: k - 1, col: j, value: getBoardValue({ board: newBoard, row: k, col: j }) });
+            while (
+              k > 0 && 
+              getBoardValue({ board: newBoard, row: k - 1, col: j }) === 0
+            ) {
+              const currentValue = getBoardValue({ board: newBoard, row: k, col: j });
+              setBoardValue({ board: newBoard, row: k - 1, col: j, value: currentValue });
               setBoardValue({ board: newBoard, row: k, col: j, value: 0 });
               k--;
               moved = true;
             }
             
-            if (k > 0 && getBoardValue({ board: newBoard, row: k - 1, col: j }) === getBoardValue({ board: newBoard, row: k, col: j })) {
-              const mergedValue = getBoardValue({ board: newBoard, row: k, col: j }) * 2;
-              setBoardValue({ board: newBoard, row: k - 1, col: j, value: mergedValue });
-              newScore += mergedValue;
-              setBoardValue({ board: newBoard, row: k, col: j, value: 0 });
-              moved = true;
+            if (k > 0) {
+              const aboveValue = getBoardValue({ board: newBoard, row: k - 1, col: j });
+              const currValue = getBoardValue({ board: newBoard, row: k, col: j });
+              
+              if (aboveValue === currValue) {
+                const mergedValue = currValue * 2;
+                setBoardValue({ board: newBoard, row: k - 1, col: j, value: mergedValue });
+                newScore += mergedValue;
+                setBoardValue({ board: newBoard, row: k, col: j, value: 0 });
+                moved = true;
+              }
             }
           }
         }
       }
     } else if (direction === "down") {
-      for (let j = 0; j < 4; j++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
         // Merge tiles
-        for (let i = 2; i >= 0; i--) {
+        for (let i = BOARD_SIZE - 2; i >= 0; i--) {
           if (getBoardValue({ board: newBoard, row: i, col: j }) !== 0) {
             let k = i;
-            while (k < 3 && getBoardValue({ board: newBoard, row: k + 1, col: j }) === 0) {
-              setBoardValue({ board: newBoard, row: k + 1, col: j, value: getBoardValue({ board: newBoard, row: k, col: j }) });
+            while (
+              k < BOARD_SIZE - 1 && 
+              getBoardValue({ board: newBoard, row: k + 1, col: j }) === 0
+            ) {
+              const currentValue = getBoardValue({ board: newBoard, row: k, col: j });
+              setBoardValue({ board: newBoard, row: k + 1, col: j, value: currentValue });
               setBoardValue({ board: newBoard, row: k, col: j, value: 0 });
               k++;
               moved = true;
             }
             
-            if (k < 3 && getBoardValue({ board: newBoard, row: k + 1, col: j }) === getBoardValue({ board: newBoard, row: k, col: j })) {
-              const mergedValue = getBoardValue({ board: newBoard, row: k, col: j }) * 2;
-              setBoardValue({ board: newBoard, row: k + 1, col: j, value: mergedValue });
-              newScore += mergedValue;
-              setBoardValue({ board: newBoard, row: k, col: j, value: 0 });
-              moved = true;
+            if (k < BOARD_SIZE - 1) {
+              const belowValue = getBoardValue({ board: newBoard, row: k + 1, col: j });
+              const currValue = getBoardValue({ board: newBoard, row: k, col: j });
+              
+              if (belowValue === currValue) {
+                const mergedValue = currValue * 2;
+                setBoardValue({ board: newBoard, row: k + 1, col: j, value: mergedValue });
+                newScore += mergedValue;
+                setBoardValue({ board: newBoard, row: k, col: j, value: 0 });
+                moved = true;
+              }
             }
           }
         }

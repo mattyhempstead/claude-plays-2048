@@ -7,7 +7,13 @@ import { desc, eq } from "drizzle-orm";
 
 export const gameRouter = createTRPCRouter({
   createGame: publicProcedure
-    .mutation(async () => {
+    .input(z.object({
+      initialBoard: z.array(z.array(z.number())).refine(
+        board => board.flat().length === 16,
+        { message: "Board must contain exactly 16 elements (4x4 grid)" }
+      )
+    }))
+    .mutation(async ({ input }) => {
       // Create a new game
       const [newGame] = await db
         .insert(game)
@@ -18,15 +24,15 @@ export const gameRouter = createTRPCRouter({
         throw new Error("Failed to create game");
       }
       
-      // Create initial board state (16 zeros)
-      const initialBoard = Array(16).fill(0);
+      // Flatten the 2D array to 1D for storage
+      const boardToUse: number[] = input.initialBoard.flat();
       
       // Create initial game state
       const [newGameState] = await db
         .insert(gameState)
         .values({
           gameId: newGame.id,
-          board: initialBoard,
+          board: boardToUse,
           score: 0,
           move: null,
         })
