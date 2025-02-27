@@ -29,6 +29,14 @@ const handler = (req: NextRequest) =>
             );
           }
         : undefined,
+    // Enable response streaming for async generators
+    responseMeta() {
+      return {
+        headers: {
+          "Transfer-Encoding": "chunked",
+        },
+      };
+    },
   });
 
 export { handler as GET, handler as POST };
