@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { BOARD_SIZE } from "@/lib/constants";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import { game, gameState } from "@/server/db/schema";
@@ -8,10 +9,7 @@ import { desc, eq } from "drizzle-orm";
 export const gameRouter = createTRPCRouter({
   createGame: publicProcedure
     .input(z.object({
-      initialBoard: z.array(z.array(z.number())).refine(
-        board => board.flat().length === 16,
-        { message: "Board must contain exactly 16 elements (4x4 grid)" }
-      )
+      initialBoard: z.array(z.number()).length(BOARD_SIZE * BOARD_SIZE)
     }))
     .mutation(async ({ input }) => {
       // Create a new game
@@ -24,8 +22,8 @@ export const gameRouter = createTRPCRouter({
         throw new Error("Failed to create game");
       }
       
-      // Flatten the 2D array to 1D for storage
-      const boardToUse: number[] = input.initialBoard.flat();
+      // Use the 1D array directly
+      const boardToUse: number[] = input.initialBoard;
       
       // Create initial game state
       const [newGameState] = await db

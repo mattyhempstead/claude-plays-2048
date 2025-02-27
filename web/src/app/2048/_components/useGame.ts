@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-const BOARD_SIZE = 4;
+import { BOARD_SIZE } from "@/lib/constants";
+import { api } from "@/trpc/react";
+import { useState } from "react";
 
 export const useGame = () => {
   const [board, setBoard] = useState<number[][]>([]);
   const [score, setScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [won, setWon] = useState<boolean>(false);
+  const [gameId, setGameId] = useState<string | null>(null);
+
+  const createGameMutation = api.game.createGame.useMutation();
 
   // Helper functions to safely get and set board values
   const getBoardValue = ({
@@ -43,12 +46,7 @@ export const useGame = () => {
     board[row][col] = value;
   };
 
-  // Initialize the game
-  useEffect(() => {
-    initializeGame();
-  }, []);
-
-  const initializeGame = () => {
+  const initializeGame = async () => {
     // Create empty board
     const newBoard = Array(BOARD_SIZE)
       .fill(0)
@@ -58,10 +56,32 @@ export const useGame = () => {
     addRandomTile({ currentBoard: newBoard });
     addRandomTile({ currentBoard: newBoard });
     
-    setBoard(newBoard);
-    setScore(0);
-    setGameOver(false);
-    setWon(false);
+    // Convert 2D board to 1D array for API
+    const flatBoard = newBoard.flat();
+    
+    try {
+      // Call the createGame API
+      const result = await createGameMutation.mutateAsync({
+        initialBoard: flatBoard,
+      });
+      
+      // Store the game ID
+      setGameId(result.gameId);
+      
+      // Update local state
+      setBoard(newBoard);
+      setScore(0);
+      setGameOver(false);
+      setWon(false);
+    } catch (error) {
+      console.error("Failed to create game:", error);
+      
+      // Still update local state even if API fails
+      setBoard(newBoard);
+      setScore(0);
+      setGameOver(false);
+      setWon(false);
+    }
   };
 
   const addRandomTile = ({
@@ -289,7 +309,7 @@ export const useGame = () => {
   };
 
   const newGame = () => {
-    initializeGame();
+    void initializeGame();
   };
 
   const continueGame = () => {
@@ -301,8 +321,9 @@ export const useGame = () => {
     score,
     gameOver,
     won,
+    gameId,
     move,
     newGame,
-    continueGame
+    continueGame,
   };
 };

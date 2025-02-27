@@ -10,10 +10,16 @@ export const Game = () => {
     score,
     gameOver,
     won,
+    gameId,
     move,
     newGame,
-    continueGame
+    continueGame,
   } = useGame();
+
+  // Initialize game on mount
+  // useEffect(() => {
+  //   void initializeGame();
+  // }, [initializeGame]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -184,6 +190,9 @@ export const Game = () => {
       
       <div className="mt-8 text-center text-gray-600">
         <p>Use arrow keys to move tiles. Combine same numbers to get to 2048!</p>
+        {gameId && (
+          <p className="mt-2 text-xs text-gray-500">Game ID: {gameId}</p>
+        )}
       </div>
     </>
   );
