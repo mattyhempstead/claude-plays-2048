@@ -24,7 +24,7 @@ export default function Page() {
   }, [moveHistory]);
 
   const handleGenerateResponse = async () => {
-    const result = await generateResponse(INITIAL_BOARD);
+    const result = await generateResponse();
     console.log("Move result:", result);
   };
 

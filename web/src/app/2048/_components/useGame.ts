@@ -2,14 +2,52 @@
 
 import { BOARD_SIZE } from "@/lib/constants";
 import { api } from "@/trpc/react";
-import { useState } from "react";
+import { create } from "zustand";
+
+type MoveDirection = "up" | "down" | "left" | "right";
+
+type GameState = {
+  board: number[][];
+  score: number;
+  gameOver: boolean;
+  gameId: string | null;
+  moveCount: number;
+  setBoard: (board: number[][]) => void;
+  setScore: (score: number) => void;
+  setGameOver: (gameOver: boolean) => void;
+  setGameId: (gameId: string | null) => void;
+  setMoveCount: (moveCount: number) => void;
+  incrementMoveCount: () => void;
+};
+
+const useGameStore = create<GameState>((set) => ({
+  board: [],
+  score: 0,
+  gameOver: false,
+  gameId: null,
+  moveCount: 0,
+  setBoard: (board) => set({ board }),
+  setScore: (score) => set({ score }),
+  setGameOver: (gameOver) => set({ gameOver }),
+  setGameId: (gameId) => set({ gameId }),
+  setMoveCount: (moveCount) => set({ moveCount }),
+  incrementMoveCount: () => set((state) => ({ moveCount: state.moveCount + 1 })),
+}));
 
 export const useGame = () => {
-  const [board, setBoard] = useState<number[][]>([]);
-  const [score, setScore] = useState<number>(0);
-  const [gameOver, setGameOver] = useState<boolean>(false);
-  const [gameId, setGameId] = useState<string | null>(null);
-  const [moveCount, setMoveCount] = useState<number>(0);
+  const {
+    board,
+    score,
+    gameOver,
+    gameId,
+    moveCount,
+    setBoard,
+    setScore,
+    setGameOver,
+    setGameId,
+    setMoveCount,
+    incrementMoveCount
+  } = useGameStore();
 
   const createGameMutation = api.game.createGame.useMutation();
   const updateGameStateMutation = api.game.updateGameState.useMutation();
@@ -333,7 +371,7 @@ export const useGame = () => {
       addRandomTile({ currentBoard: newBoard });
       setBoard(newBoard);
       setScore(newScore);
-      setMoveCount(prevCount => prevCount + 1);
+      incrementMoveCount();
       
       // Update game state in the database
       if (gameId) {

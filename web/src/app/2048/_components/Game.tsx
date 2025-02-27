@@ -16,7 +16,7 @@ export const Game = () => {
     newGame,
   } = useGame();
   
-  const { isLoading, generateResponse } = useClaude();
+  const { isLoading, generateResponse, isActive, setIsActive } = useClaude();
 
   // Handle keyboard events
   useEffect(() => {
@@ -43,14 +43,29 @@ export const Game = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [gameOver, move]);
 
+
   const handleAIMove = async () => {
     // Convert 2D board to 1D array for Claude
-    const flatBoard = board.flat();
-    const result = await generateResponse(flatBoard);
+    const result = await generateResponse();
     
     if (result.move) {
       move(result.move);
     }
+  };
+
+  // Auto-play effect
+  useEffect(() => {
+    const autoPlay = async () => {
+      if (!isLoading && isActive && !gameOver) {
+        await handleAIMove();
+      }
+    };
+
+    void autoPlay();
+  }, [isLoading, isActive, gameOver]);
+
+  const toggleAutoPlay = () => {
+    setIsActive(!isActive);
   };
 
   return (
@@ -104,6 +119,16 @@ export const Game = () => {
             ) : (
               <span>Play Move</span>
             )}
+          </button>
+          <button 
+            onClick={toggleAutoPlay}
+            className={`flex items-center gap-1 rounded-md px-3 py-2 ${
+              isActive 
+                ? 'bg-green-500 hover:bg-green-600 text-white' 
+                : 'bg-gray-300 hover:bg-gray-400'
+            }`}
+          >
+            <span>{isActive ? 'Auto-Play: ON' : 'Auto-Play: OFF'}</span>
           </button>
         </div>
       </div>

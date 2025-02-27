@@ -2,6 +2,7 @@
 
 import { api } from "@/trpc/react";
 import { create } from "zustand";
+import { useGame } from "./useGame";
 
 type MoveDirection = "up" | "down" | "left" | "right";
 
@@ -16,11 +17,13 @@ type ClaudeState = {
   isThinking: boolean;
   isAnswering: boolean;
   isExtractingMove: boolean;
+  isActive: boolean;
   moveHistory: MoveHistoryItem[];
   setIsLoading: (isLoading: boolean) => void;
   setIsThinking: (isThinking: boolean) => void;
   setIsAnswering: (isAnswering: boolean) => void;
   setIsExtractingMove: (isExtractingMove: boolean) => void;
+  setIsActive: (isActive: boolean) => void;
   addMoveHistoryItem: () => number;
   updateMoveHistoryItem: (index: number, item: Partial<MoveHistoryItem>) => void;
 };
@@ -30,11 +33,13 @@ const useClaudeStore = create<ClaudeState>((set) => ({
   isThinking: false,
   isAnswering: false,
   isExtractingMove: false,
+  isActive: false,
   moveHistory: [],
   setIsLoading: (isLoading) => set({ isLoading }),
   setIsThinking: (isThinking) => set({ isThinking }),
   setIsAnswering: (isAnswering) => set({ isAnswering }),
   setIsExtractingMove: (isExtractingMove) => set({ isExtractingMove }),
+  setIsActive: (isActive) => set({ isActive }),
   addMoveHistoryItem: () => {
     let newIndex = 0;
     set((state) => {
@@ -57,18 +62,21 @@ export const useClaude = () => {
     isThinking,
     isAnswering,
     isExtractingMove,
+    isActive,
     moveHistory,
     setIsLoading,
     setIsThinking,
     setIsAnswering,
     setIsExtractingMove,
+    setIsActive,
     addMoveHistoryItem,
     updateMoveHistoryItem
   } = useClaudeStore();
   
+  const { board } = useGame();
+  
   const generateResponseMutation = api.ai.generateClaudeResponse.useMutation({
     onMutate: () => {
-      setIsLoading(true);
       setIsThinking(false);
       setIsAnswering(false);
       setIsExtractingMove(false);
@@ -90,11 +98,16 @@ export const useClaude = () => {
     },
   });
 
-  const generateResponse = async (board: number[]) => {
+  const generateResponse = async () => {
     try {
+      setIsLoading(true);
+
+      // Flatten the board for the API
+      const flatBoard = board.flat();
+      
       // The mutation returns an AsyncGenerator
       const generator = await generateResponseMutation.mutateAsync({
-        board,
+        board: flatBoard,
       });
 
       let answerText = "";
@@ -187,6 +200,8 @@ export const useClaude = () => {
     isThinking,
     isAnswering,
     isExtractingMove,
+    isActive,
+    setIsActive,
     generateResponse,
     moveHistory: limitedMoveHistory,
   };
