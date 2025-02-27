@@ -188,14 +188,14 @@ const ClaudeAnalysis = ({
   gameOver: boolean;
 }) => {
   const responseRef = useRef<HTMLDivElement>(null);
-  const { streamedResponse, isLoading, isThinking, generateResponse } = useClaude();
+  const { isLoading, isThinking, isAnswering, isExtractingMove, generateResponse, moveHistory } = useClaude();
   
   // Auto-scroll to bottom of response container
   useEffect(() => {
     if (responseRef.current) {
       responseRef.current.scrollTop = responseRef.current.scrollHeight;
     }
-  }, [streamedResponse]);
+  }, [moveHistory]);
 
   const handleAIMove = async () => {
     // Convert 2D board to 1D array for Claude
@@ -215,7 +215,31 @@ const ClaudeAnalysis = ({
         ref={responseRef}
         className="h-[500px] overflow-y-auto rounded-md border border-gray-300 bg-gray-50 p-4 font-mono whitespace-pre-wrap mb-4"
       >
-        {streamedResponse || (
+        {moveHistory.length > 0 ? (
+          moveHistory.map((item, index) => (
+            <div key={index} className="mb-4">
+              {item.thinkingResponse && (
+                <div>
+                  <div className="text-gray-500 font-bold">&lt;THINKING&gt;</div>
+                  <div className="whitespace-pre-wrap">{item.thinkingResponse}</div>
+                  {!isThinking && <div className="text-gray-500 font-bold">&lt;/THINKING&gt;</div>}
+                </div>
+              )}
+              {item.answerResponse && (
+                <div>
+                  <div className="text-gray-500 font-bold">&lt;ANSWER&gt;</div>
+                  <div className="whitespace-pre-wrap">{item.answerResponse}</div>
+                  {!isAnswering && <div className="text-gray-500 font-bold">&lt;/ANSWER&gt;</div>}
+                </div>
+              )}
+              {item.move && (
+                <div className="text-green-600 font-bold">
+                  Move: {item.move.toUpperCase()}
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
           <div className="text-gray-500">
             Claude will analyze your game when you click &quot;Play AI Move&quot;
           </div>
@@ -228,13 +252,23 @@ const ClaudeAnalysis = ({
         className={`flex items-center gap-2 rounded-md px-4 py-2 ${
           isThinking 
             ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-            : 'bg-blue-500 hover:bg-blue-600 text-white'
+            : isAnswering
+              ? 'bg-green-600 hover:bg-green-700 text-white'
+              : isExtractingMove
+                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       >
-        {isLoading || isThinking ? (
+        {isLoading ? (
           <>
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            {isThinking ? "Claude is thinking..." : "Generating..."}
+            {isThinking 
+              ? "Claude is thinking..." 
+              : isAnswering 
+                ? "Claude is answering..." 
+                : isExtractingMove 
+                  ? "Extracting move..." 
+                  : "Generating..."}
           </>
         ) : (
           <>

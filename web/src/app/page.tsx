@@ -14,14 +14,14 @@ const INITIAL_BOARD = [
 
 export default function Page() {
   const responseRef = useRef<HTMLDivElement>(null);
-  const { streamedResponse, isLoading, isThinking, generateResponse } = useClaude();
+  const { isLoading, isThinking, isAnswering, isExtractingMove, generateResponse, moveHistory } = useClaude();
 
   // Auto-scroll to bottom of response container
   useEffect(() => {
     if (responseRef.current) {
       responseRef.current.scrollTop = responseRef.current.scrollHeight;
     }
-  }, [streamedResponse]);
+  }, [moveHistory]);
 
   const handleGenerateResponse = async () => {
     const result = await generateResponse(INITIAL_BOARD);
@@ -55,27 +55,41 @@ export default function Page() {
         disabled={isLoading}
         className={`mb-4 ${isThinking ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
       >
-        {isLoading || isThinking ? (
+        {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {isThinking ? "Claude is thinking..." : "Generating..."}
+            {isThinking 
+              ? "Claude is thinking..." 
+              : isAnswering 
+                ? "Claude is answering..." 
+                : isExtractingMove 
+                  ? "Extracting move..." 
+                  : "Generating..."}
           </>
         ) : (
           "Generate Move"
         )}
       </Button>
 
-      {(isLoading || streamedResponse) && (
+      {(isLoading || moveHistory.length > 0) && (
         <div className="mt-6">
           <h2 className="mb-2 text-xl font-semibold">Response:</h2>
           <div 
             ref={responseRef}
             className="max-h-[500px] overflow-y-auto rounded-md border border-gray-300 bg-gray-50 p-4 font-mono whitespace-pre-wrap"
           >
-            {streamedResponse || (
+            {moveHistory.length > 0 ? (
+              JSON.stringify(moveHistory, null, 2)
+            ) : (
               <div className="flex items-center">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isThinking ? "Claude is thinking..." : "Generating response..."}
+                {isThinking 
+                  ? "Claude is thinking..." 
+                  : isAnswering 
+                    ? "Claude is answering..." 
+                    : isExtractingMove 
+                      ? "Extracting move..." 
+                      : "Generating response..."}
               </div>
             )}
           </div>

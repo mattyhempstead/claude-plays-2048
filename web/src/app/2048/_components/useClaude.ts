@@ -3,24 +3,44 @@
 import { api } from "@/trpc/react";
 import { useState } from "react";
 
+type MoveDirection = "up" | "down" | "left" | "right";
+
+type MoveHistoryItem = {
+  thinkingResponse?: string;
+  answerResponse?: string;
+  move?: MoveDirection;
+};
+
 export const useClaude = () => {
-  const [streamedResponse, setStreamedResponse] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isThinking, setIsThinking] = useState<boolean>(false);
+  const [isAnswering, setIsAnswering] = useState<boolean>(false);
+  const [isExtractingMove, setIsExtractingMove] = useState<boolean>(false);
+  const [moveHistory, setMoveHistory] = useState<MoveHistoryItem[]>([]);
   
   const generateResponseMutation = api.ai.generateClaudeResponse.useMutation({
     onMutate: () => {
       setIsLoading(true);
-      setStreamedResponse("");
       setIsThinking(false);
+      setIsAnswering(false);
+      setIsExtractingMove(false);
     },
     onSettled: () => {
-      setIsLoading(false);
+      // We don't set isLoading to false here anymore
+      // It will be set to false after the move is calculated
       setIsThinking(false);
+      setIsAnswering(false);
     },
   });
 
-  const extractMoveMutation = api.ai.extractClaudeMove.useMutation();
+  const extractMoveMutation = api.ai.extractClaudeMove.useMutation({
+    onMutate: () => {
+      setIsExtractingMove(true);
+    },
+    onSettled: () => {
+      setIsExtractingMove(false);
+    },
+  });
 
   const generateResponse = async (board: number[]) => {
     try {
@@ -30,65 +50,115 @@ export const useClaude = () => {
       });
 
       let answerText = "";
+      let thinkingText = "";
       let isInAnswerBlock = false;
+      let isInThinkingBlock = false;
+      
+      // Create a new history item for this move
+      const currentMoveIndex = moveHistory.length;
+      setMoveHistory(prev => [...prev, {}]);
 
       // Process each chunk from the generator
       for await (const chunk of generator) {
-        // Check if this is a thinking chunk
+        // Check if this is a thinking chunk start
         if (chunk === "\n<THINKING>\n") {
           setIsThinking(true);
-          // Add thinking tag to the response
-          setStreamedResponse((prev) => prev + chunk);
+          isInThinkingBlock = true;
           continue;
         }
         
         // Check if thinking has ended
         if (chunk === "\n</THINKING>\n") {
           setIsThinking(false);
-          setStreamedResponse((prev) => prev + chunk);
+          isInThinkingBlock = false;
           continue;
         }
 
         // Check if we're entering the answer block
         if (chunk === "\n<ANSWER>\n") {
+          setIsAnswering(true);
           isInAnswerBlock = true;
-          setStreamedResponse((prev) => prev + chunk);
           continue;
         }
 
         // Check if we're exiting the answer block
         if (chunk === "\n</ANSWER>\n") {
+          setIsAnswering(false);
           isInAnswerBlock = false;
-          setStreamedResponse((prev) => prev + chunk);
           continue;
         }
         
         // If we're in the answer block, collect the text
         if (isInAnswerBlock) {
           answerText += chunk;
+          // Update the answer response in history
+          setMoveHistory(prev => {
+            const updated = [...prev];
+            updated[currentMoveIndex] = {
+              ...updated[currentMoveIndex],
+              answerResponse: answerText
+            };
+            return updated;
+          });
         }
-
-        setStreamedResponse((prev) => prev + chunk);
+        
+        // If we're in the thinking block, collect the text
+        if (isInThinkingBlock) {
+          thinkingText += chunk;
+          // Update the thinking response in history
+          setMoveHistory(prev => {
+            const updated = [...prev];
+            updated[currentMoveIndex] = {
+              ...updated[currentMoveIndex],
+              thinkingResponse: thinkingText
+            };
+            return updated;
+          });
+        }
       }
 
       // Extract the move from the answer text
       if (answerText) {
-        const move = await extractMoveMutation.mutateAsync({ answerText });
-        return { move };
+        try {
+          const move = await extractMoveMutation.mutateAsync({ answerText });
+          
+          // Update the move in history
+          if (move) {
+            setMoveHistory(prev => {
+              const updated = [...prev];
+              updated[currentMoveIndex] = {
+                ...updated[currentMoveIndex],
+                move: move as MoveDirection
+              };
+              return updated;
+            });
+          }
+          
+          // Now that everything is complete, set isLoading to false
+          setIsLoading(false);
+          return { move };
+        } catch (error) {
+          setIsLoading(false);
+          console.error("Error extracting move:", error);
+          return { move: null };
+        }
       }
 
+      setIsLoading(false);
       return { move: null };
     } catch (error) {
+      setIsLoading(false);
       console.error("Error streaming response:", error);
-      setStreamedResponse((prev) => prev + "\nError: Failed to generate response.");
       return { move: null };
     }
   };
 
   return {
-    streamedResponse,
     isLoading,
     isThinking,
+    isAnswering,
+    isExtractingMove,
     generateResponse,
+    moveHistory,
   };
 };
