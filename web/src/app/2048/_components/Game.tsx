@@ -46,41 +46,6 @@ export const Game = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [gameOver, move]);
 
-  // Get tile background color based on value
-  const getTileColor = ({
-    value
-  }: {
-    value: number;
-  }): string => {
-    const colors: Record<number, string> = {
-      0: "bg-gray-200",
-      2: "bg-yellow-100 text-gray-800",
-      4: "bg-yellow-200 text-gray-800",
-      8: "bg-yellow-300 text-white",
-      16: "bg-yellow-400 text-white",
-      32: "bg-orange-300 text-white",
-      64: "bg-orange-400 text-white",
-      128: "bg-orange-500 text-white",
-      256: "bg-red-400 text-white",
-      512: "bg-red-500 text-white",
-      1024: "bg-red-600 text-white",
-      2048: "bg-yellow-500 text-white",
-    };
-    
-    return colors[value] || "bg-purple-600 text-white";
-  };
-
-  // Get font size based on value
-  const getFontSize = ({
-    value
-  }: {
-    value: number;
-  }): string => {
-    if (value < 100) return "text-2xl";
-    if (value < 1000) return "text-xl";
-    return "text-lg";
-  };
-
   return (
     <>
       <h1 className="mb-4 text-4xl font-bold">2048</h1>
@@ -100,16 +65,7 @@ export const Game = () => {
         </button>
       </div>
       
-      <div className="grid grid-cols-4 gap-4 rounded-lg bg-gray-300 p-4 mb-4">
-        {board.flat().map((value, i) => (
-          <div
-            key={i}
-            className={`flex h-16 w-16 items-center justify-center rounded-lg ${getTileColor({ value })} ${getFontSize({ value })} font-bold transition-all duration-100`}
-          >
-            {value !== 0 && value}
-          </div>
-        ))}
-      </div>
+      <GameBoard board={board} />
       
       {/* Control buttons */}
       <div className="grid grid-cols-3 gap-2 mt-4">
@@ -195,5 +151,59 @@ export const Game = () => {
         )}
       </div>
     </>
+  );
+};
+
+const GameBoard = ({
+  board
+}: {
+  board: number[][];
+}) => {
+  // Get tile background color based on value
+  const getTileColor = ({
+    value
+  }: {
+    value: number;
+  }): string => {
+    const colors: Record<number, string> = {
+      0: "bg-gray-200",
+      2: "bg-yellow-100 text-gray-800",
+      4: "bg-yellow-200 text-gray-800",
+      8: "bg-yellow-300 text-white",
+      16: "bg-yellow-400 text-white",
+      32: "bg-orange-300 text-white",
+      64: "bg-orange-400 text-white",
+      128: "bg-orange-500 text-white",
+      256: "bg-red-400 text-white",
+      512: "bg-red-500 text-white",
+      1024: "bg-red-600 text-white",
+      2048: "bg-yellow-500 text-white",
+    };
+    
+    return colors[value] || "bg-purple-600 text-white";
+  };
+
+  // Get font size based on value
+  const getFontSize = ({
+    value
+  }: {
+    value: number;
+  }): string => {
+    if (value < 100) return "text-2xl";
+    if (value < 1000) return "text-xl";
+    return "text-lg";
+  };
+
+  return (
+    <div className="grid grid-cols-4 gap-4 rounded-lg bg-gray-300 p-4 mb-4">
+      {board.flat().map((value, i) => (
+        <div
+          key={i}
+          className={`flex h-16 w-16 items-center justify-center rounded-lg ${getTileColor({ value })} ${getFontSize({ value })} font-bold transition-all duration-100`}
+        >
+          {value !== 0 && value}
+        </div>
+      ))}
+    </div>
   );
 };

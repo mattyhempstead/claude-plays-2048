@@ -301,6 +301,8 @@ export const useGame = () => {
       
       // Update game state in the database
       if (gameId) {
+        // This is sometimes out of order based on race condition of the game state
+        // We should use a counter probably, or queue them outgoing
         void updateGameStateMutation.mutateAsync({
           gameId,
           board: newBoard.flat(),
