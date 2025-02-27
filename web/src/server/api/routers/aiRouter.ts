@@ -36,6 +36,11 @@ Decide on either "up", "down", "left", or "right".
 Do not spend too long thinking about the board, try to quickly determine the best move.
 When you give your answer, respond with a very brief justification and the move to make.
 
+Recall that
+ - All numbers on the board are powers of 2.
+ - Moving will slide all tiles in the chosen direction and tiles will merge if they have the same number and are pushed into eachother.
+ - After a move, a new tile will appear in a random empty square with a value of either 2 (90% chance) or 4 (10% chance).
+
 The board is a 4x4 grid that is shown below.
 Each square in the grid is a number and commas are used to separate the numbers in each row.
 The number "0" is used to represent an empty space.
