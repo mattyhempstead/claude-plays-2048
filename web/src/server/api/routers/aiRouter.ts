@@ -3,6 +3,8 @@ import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+const STREAM_CHUNK_DELAY_MS = 500;
+
 const anthropic = new Anthropic({
   apiKey: env.ANTHROPIC_API_KEY,
 });
@@ -15,7 +17,7 @@ export const aiRouter = createTRPCRouter({
     .mutation(async function* ({ input }) {
       try {
         const stream = anthropic.messages.stream({
-          model: "claude-3-7-sonnet-20250219",
+          model: "claude-3-7-sonnet-latest",
           max_tokens: 2048,
           thinking: {
             type: "enabled",
@@ -54,6 +56,11 @@ ${input.board.slice(12, 16).join(',')}
         let isInAnswerBlock = false;
 
         for await (const event of stream) {
+          // Add a small delay to avoid overwhelming the client
+          if (STREAM_CHUNK_DELAY_MS > 0) {
+            await new Promise(resolve => setTimeout(resolve, STREAM_CHUNK_DELAY_MS));
+          }
+
           if (event.type === 'content_block_start') {
             console.log(`\nStarting ${event.content_block.type} block...`);
 
@@ -126,7 +133,7 @@ ${input.board.slice(12, 16).join(',')}
 
         // Create a message with system prompt to make the tool call
         const response = await anthropic.messages.create({
-          model: "claude-3-7-sonnet-20250219",
+          model: "claude-3-5-haiku-latest",
           max_tokens: 1024,
           system: `
 You are an assistant that helps analyze situations and determine the best move.
