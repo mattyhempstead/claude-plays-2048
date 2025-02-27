@@ -60,7 +60,7 @@ ${input.board.slice(12, 16).join(',')}
           }]
         });
 
-        yield "<CONTENT_START>";
+        yield "<MOVE_START>";
 
         let isInThinkingBlock = false;
         let isInAnswerBlock = false;
@@ -102,7 +102,7 @@ ${input.board.slice(12, 16).join(',')}
           }
         }
 
-        yield "<CONTENT_END>";
+        yield "<MOVE_END>";
 
         // Get the complete message to access full usage information
         const message = await stream.finalMessage();

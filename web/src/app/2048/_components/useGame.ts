@@ -8,7 +8,6 @@ export const useGame = () => {
   const [board, setBoard] = useState<number[][]>([]);
   const [score, setScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
-  const [won, setWon] = useState<boolean>(false);
   const [gameId, setGameId] = useState<string | null>(null);
 
   const createGameMutation = api.game.createGame.useMutation();
@@ -73,7 +72,6 @@ export const useGame = () => {
       setBoard(newBoard);
       setScore(0);
       setGameOver(false);
-      setWon(false);
     } catch (error) {
       console.error("Failed to create game:", error);
       
@@ -81,7 +79,6 @@ export const useGame = () => {
       setBoard(newBoard);
       setScore(0);
       setGameOver(false);
-      setWon(false);
     }
   };
 
@@ -147,19 +144,6 @@ export const useGame = () => {
     }
     
     return true;
-  };
-
-  const checkWin = ({
-    currentBoard
-  }: {
-    currentBoard: number[][];
-  }): boolean => {
-    for (let i = 0; i < BOARD_SIZE; i++) {
-      for (let j = 0; j < BOARD_SIZE; j++) {
-        if (getBoardValue({ board: currentBoard, row: i, col: j }) === 2048) return true;
-      }
-    }
-    return false;
   };
 
   const move = (direction: "up" | "down" | "left" | "right") => {
@@ -311,10 +295,6 @@ export const useGame = () => {
         });
       }
       
-      if (checkWin({ currentBoard: newBoard })) {
-        setWon(true);
-      }
-      
       if (checkGameOver({ currentBoard: newBoard })) {
         setGameOver(true);
       }
@@ -325,18 +305,12 @@ export const useGame = () => {
     void initializeGame();
   };
 
-  const continueGame = () => {
-    setWon(false);
-  };
-
   return {
     board,
     score,
     gameOver,
-    won,
     gameId,
     move,
     newGame,
-    continueGame,
   };
 };
