@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Play, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useClaude } from "./useClaude";
 import { useGame } from "./useGame";
@@ -11,9 +11,12 @@ export const Game = () => {
     score,
     gameOver,
     gameId,
+    moveCount,
     move,
     newGame,
   } = useGame();
+  
+  const { isLoading, generateResponse } = useClaude();
 
   // Handle keyboard events
   useEffect(() => {
@@ -40,13 +43,23 @@ export const Game = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [gameOver, move]);
 
+  const handleAIMove = async () => {
+    // Convert 2D board to 1D array for Claude
+    const flatBoard = board.flat();
+    const result = await generateResponse(flatBoard);
+    
+    if (result.move) {
+      move(result.move);
+    }
+  };
+
   return (
     <>
       <h1 className="text-3xl font-bold text-center mb-12">Claude Plays 2048</h1>
 
       <div className="flex flex-col md:flex-row gap-8 w-full max-w-6xl">
         {/* Claude Response Section */}
-        <ClaudeAnalysis board={board} move={move} gameOver={gameOver} />
+        <ClaudeAnalysis />
         
         {/* Game Section */}
         <div className="flex-1 flex flex-col items-center">
@@ -54,6 +67,11 @@ export const Game = () => {
             <div className="rounded-md bg-gray-300 p-2 min-w-[100px]">
               <div className="text-sm text-gray-700">Score</div>
               <div className="font-bold text-xl">{score}</div>
+            </div>
+            
+            <div className="rounded-md bg-gray-300 p-2 min-w-[100px]">
+              <div className="text-sm text-gray-700">Move</div>
+              <div className="font-bold text-xl">#{moveCount}</div>
             </div>
             
             {/* Control buttons */}
@@ -68,13 +86,26 @@ export const Game = () => {
         {gameId && (
           <p className="mb-2 text-xs text-gray-500">Game ID: {gameId}</p>
         )}
-        <button 
-          onClick={newGame}
-          className="flex items-center gap-1 rounded-md bg-gray-300 px-3 py-2 hover:bg-gray-400"
-        >
-          <RotateCcw size={16} />
-          <span>New Game</span>
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={newGame}
+            className="flex items-center gap-1 rounded-md bg-gray-300 px-3 py-2 hover:bg-gray-400"
+          >
+            <RotateCcw size={16} />
+            <span>New Game</span>
+          </button>
+          <button 
+            onClick={handleAIMove}
+            disabled={isLoading || gameOver}
+            className="flex items-center gap-1 rounded-md bg-gray-300 px-3 py-2 hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <span>Loading...</span>
+            ) : (
+              <span>Play Move</span>
+            )}
+          </button>
+        </div>
       </div>
     </>
   );
@@ -178,17 +209,9 @@ const GamePad = ({
   );
 };
 
-const ClaudeAnalysis = ({
-  board,
-  move,
-  gameOver
-}: {
-  board: number[][];
-  move: (direction: "up" | "down" | "left" | "right") => void;
-  gameOver: boolean;
-}) => {
+const ClaudeAnalysis = () => {
   const responseRef = useRef<HTMLDivElement>(null);
-  const { isLoading, isThinking, isAnswering, isExtractingMove, generateResponse, moveHistory } = useClaude();
+  const { isLoading, isThinking, isAnswering, isExtractingMove, moveHistory } = useClaude();
   
   // Auto-scroll to bottom of response container
   useEffect(() => {
@@ -197,84 +220,68 @@ const ClaudeAnalysis = ({
     }
   }, [moveHistory]);
 
-  const handleAIMove = async () => {
-    // Convert 2D board to 1D array for Claude
-    const flatBoard = board.flat();
-    const result = await generateResponse(flatBoard);
-    
-    if (result.move) {
-      move(result.move);
-    }
-  };
-
   return (
     <div className="flex-1 min-w-0">
-      <h2 className="mb-4 text-2xl font-bold">Claude&apos;s Analysis</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Claude&apos;s Analysis</h2>
+        {isLoading && (
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-white text-sm ${
+            isThinking 
+              ? 'bg-amber-600' 
+              : isAnswering
+                ? 'bg-green-600'
+                : isExtractingMove
+                  ? 'bg-purple-600'
+                  : 'bg-blue-500'
+          }`}>
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            <span>
+              {isThinking 
+                ? "Thinking..." 
+                : isAnswering 
+                  ? "Answering..." 
+                  : isExtractingMove 
+                    ? "Playing move..." 
+                    : "Loading..."}
+            </span>
+          </div>
+        )}
+      </div>
       
       <div 
         ref={responseRef}
-        className="h-[500px] overflow-y-auto rounded-md border border-gray-300 bg-gray-50 p-4 font-mono whitespace-pre-wrap mb-4 flex flex-col gap-4"
+        className="h-[500px] overflow-y-auto rounded-md border border-gray-300 bg-gray-50 p-4 font-mono whitespace-pre-wrap mb-4"
       >
-        {moveHistory.length > 0 && (
-          moveHistory.map((item, index) => (
-            <div key={index} className="flex flex-col gap-4">
-              {item.thinkingResponse && (
-                <div>
-                  <div className="text-gray-500 font-bold">&lt;THINKING&gt;</div>
-                  <div className="whitespace-pre-wrap">{item.thinkingResponse}</div>
-                  {!isThinking && <div className="text-gray-500 font-bold">&lt;/THINKING&gt;</div>}
-                </div>
-              )}
-              {item.answerResponse && (
-                <div>
-                  <div className="text-gray-500 font-bold">&lt;ANSWER&gt;</div>
-                  <div className="whitespace-pre-wrap">{item.answerResponse}</div>
-                  {!isAnswering && <div className="text-gray-500 font-bold">&lt;/ANSWER&gt;</div>}
-                </div>
-              )}
-              {item.move && (
-                <div className="text-green-600 font-bold">
-                  <div className="text-gray-500 font-bold">&lt;MOVE&gt;</div>
-                  <div>{item.move}</div>
-                  <div className="text-gray-500 font-bold">&lt;/MOVE&gt;</div>
-                </div>
-              )}
-            </div>
-          ))
-        )}
+        <div className="flex flex-col gap-4">
+          {moveHistory.length > 0 && (
+            moveHistory.map((item, index) => (
+              <div key={index} className="flex flex-col gap-4">
+                {item.thinkingResponse && (
+                  <div>
+                    <div className="text-gray-500 font-bold">&lt;THINKING&gt;</div>
+                    <div className="whitespace-pre-wrap">{item.thinkingResponse}</div>
+                    {!isThinking && <div className="text-gray-500 font-bold">&lt;/THINKING&gt;</div>}
+                  </div>
+                )}
+                {item.answerResponse && (
+                  <div>
+                    <div className="text-gray-500 font-bold">&lt;ANSWER&gt;</div>
+                    <div className="whitespace-pre-wrap">{item.answerResponse}</div>
+                    {!isAnswering && <div className="text-gray-500 font-bold">&lt;/ANSWER&gt;</div>}
+                  </div>
+                )}
+                {item.move && (
+                  <div className="text-green-600 font-bold">
+                    <div className="text-gray-500 font-bold">&lt;MOVE&gt;</div>
+                    <div>{item.move}</div>
+                    <div className="text-gray-500 font-bold">&lt;/MOVE&gt;</div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
-
-      <button 
-        onClick={handleAIMove}
-        disabled={isLoading || gameOver}
-        className={`flex items-center gap-2 rounded-md px-4 py-2 ${
-          isThinking 
-            ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-            : isAnswering
-              ? 'bg-green-600 hover:bg-green-700 text-white'
-              : isExtractingMove
-                ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-        } disabled:opacity-50 disabled:cursor-not-allowed`}
-      >
-        {isLoading ? (
-          <>
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            {isThinking 
-              ? "Claude is thinking..." 
-              : isAnswering 
-                ? "Claude is answering..." 
-                : isExtractingMove 
-                  ? "Extracting move..." 
-                  : "Generating..."}
-          </>
-        ) : (
-          <>
-            <Play size={16} />
-            <span>Play AI Move</span>
-          </>
-        )}
-      </button>
     </div>
   );
 };

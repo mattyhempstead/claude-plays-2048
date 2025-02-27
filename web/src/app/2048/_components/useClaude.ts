@@ -1,7 +1,7 @@
 'use client';
 
 import { api } from "@/trpc/react";
-import { useState } from "react";
+import { create } from "zustand";
 
 type MoveDirection = "up" | "down" | "left" | "right";
 
@@ -11,12 +11,60 @@ type MoveHistoryItem = {
   move?: MoveDirection;
 };
 
+type ClaudeState = {
+  isLoading: boolean;
+  isThinking: boolean;
+  isAnswering: boolean;
+  isExtractingMove: boolean;
+  moveHistory: MoveHistoryItem[];
+  setIsLoading: (isLoading: boolean) => void;
+  setIsThinking: (isThinking: boolean) => void;
+  setIsAnswering: (isAnswering: boolean) => void;
+  setIsExtractingMove: (isExtractingMove: boolean) => void;
+  addMoveHistoryItem: () => number;
+  updateMoveHistoryItem: (index: number, item: Partial<MoveHistoryItem>) => void;
+};
+
+const useClaudeStore = create<ClaudeState>((set) => ({
+  isLoading: false,
+  isThinking: false,
+  isAnswering: false,
+  isExtractingMove: false,
+  moveHistory: [],
+  setIsLoading: (isLoading) => set({ isLoading }),
+  setIsThinking: (isThinking) => set({ isThinking }),
+  setIsAnswering: (isAnswering) => set({ isAnswering }),
+  setIsExtractingMove: (isExtractingMove) => set({ isExtractingMove }),
+  addMoveHistoryItem: () => {
+    let newIndex = 0;
+    set((state) => {
+      const newMoveHistory = [...state.moveHistory, {}];
+      newIndex = newMoveHistory.length - 1;
+      return { moveHistory: newMoveHistory };
+    });
+    return newIndex;
+  },
+  updateMoveHistoryItem: (index, item) => set((state) => {
+    const newMoveHistory = [...state.moveHistory];
+    newMoveHistory[index] = { ...newMoveHistory[index], ...item };
+    return { moveHistory: newMoveHistory };
+  }),
+}));
+
 export const useClaude = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isThinking, setIsThinking] = useState<boolean>(false);
-  const [isAnswering, setIsAnswering] = useState<boolean>(false);
-  const [isExtractingMove, setIsExtractingMove] = useState<boolean>(false);
-  const [moveHistory, setMoveHistory] = useState<MoveHistoryItem[]>([]);
+  const {
+    isLoading,
+    isThinking,
+    isAnswering,
+    isExtractingMove,
+    moveHistory,
+    setIsLoading,
+    setIsThinking,
+    setIsAnswering,
+    setIsExtractingMove,
+    addMoveHistoryItem,
+    updateMoveHistoryItem
+  } = useClaudeStore();
   
   const generateResponseMutation = api.ai.generateClaudeResponse.useMutation({
     onMutate: () => {
@@ -55,8 +103,7 @@ export const useClaude = () => {
       let isInThinkingBlock = false;
       
       // Create a new history item for this move
-      const currentMoveIndex = moveHistory.length;
-      setMoveHistory(prev => [...prev, {}]);
+      const currentMoveIndex = addMoveHistoryItem();
 
       // Process each chunk from the generator
       for await (const chunk of generator) {
@@ -92,28 +139,14 @@ export const useClaude = () => {
         if (isInAnswerBlock) {
           answerText += chunk;
           // Update the answer response in history
-          setMoveHistory(prev => {
-            const updated = [...prev];
-            updated[currentMoveIndex] = {
-              ...updated[currentMoveIndex],
-              answerResponse: answerText
-            };
-            return updated;
-          });
+          updateMoveHistoryItem(currentMoveIndex, { answerResponse: answerText });
         }
         
         // If we're in the thinking block, collect the text
         if (isInThinkingBlock) {
           thinkingText += chunk;
           // Update the thinking response in history
-          setMoveHistory(prev => {
-            const updated = [...prev];
-            updated[currentMoveIndex] = {
-              ...updated[currentMoveIndex],
-              thinkingResponse: thinkingText
-            };
-            return updated;
-          });
+          updateMoveHistoryItem(currentMoveIndex, { thinkingResponse: thinkingText });
         }
       }
 
@@ -124,14 +157,7 @@ export const useClaude = () => {
           
           // Update the move in history
           if (move) {
-            setMoveHistory(prev => {
-              const updated = [...prev];
-              updated[currentMoveIndex] = {
-                ...updated[currentMoveIndex],
-                move: move as MoveDirection
-              };
-              return updated;
-            });
+            updateMoveHistoryItem(currentMoveIndex, { move: move });
           }
           
           // Now that everything is complete, set isLoading to false
@@ -153,12 +179,15 @@ export const useClaude = () => {
     }
   };
 
+  // Get only the last 3 items from the move history
+  const limitedMoveHistory = moveHistory.slice(-3);
+
   return {
     isLoading,
     isThinking,
     isAnswering,
     isExtractingMove,
     generateResponse,
-    moveHistory,
+    moveHistory: limitedMoveHistory,
   };
 };

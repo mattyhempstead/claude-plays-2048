@@ -9,6 +9,7 @@ export const useGame = () => {
   const [score, setScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [gameId, setGameId] = useState<string | null>(null);
+  const [moveCount, setMoveCount] = useState<number>(0);
 
   const createGameMutation = api.game.createGame.useMutation();
   const updateGameStateMutation = api.game.updateGameState.useMutation();
@@ -79,6 +80,7 @@ export const useGame = () => {
       // Update local state
       setBoard(newBoard);
       setScore(0);
+      setMoveCount(0);
       setGameOver(false);
     } catch (error) {
       console.error("Failed to create game:", error);
@@ -86,6 +88,7 @@ export const useGame = () => {
       // Still update local state even if API fails
       setBoard(newBoard);
       setScore(0);
+      setMoveCount(0);
       setGameOver(false);
     }
   };
@@ -330,6 +333,7 @@ export const useGame = () => {
       addRandomTile({ currentBoard: newBoard });
       setBoard(newBoard);
       setScore(newScore);
+      setMoveCount(prevCount => prevCount + 1);
       
       // Update game state in the database
       if (gameId) {
@@ -358,6 +362,7 @@ export const useGame = () => {
     score,
     gameOver,
     gameId,
+    moveCount,
     move,
     newGame,
   };
