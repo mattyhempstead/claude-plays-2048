@@ -213,11 +213,11 @@ const ClaudeAnalysis = ({
       
       <div 
         ref={responseRef}
-        className="h-[500px] overflow-y-auto rounded-md border border-gray-300 bg-gray-50 p-4 font-mono whitespace-pre-wrap mb-4"
+        className="h-[500px] overflow-y-auto rounded-md border border-gray-300 bg-gray-50 p-4 font-mono whitespace-pre-wrap mb-4 flex flex-col gap-4"
       >
-        {moveHistory.length > 0 ? (
+        {moveHistory.length > 0 && (
           moveHistory.map((item, index) => (
-            <div key={index} className="mb-4">
+            <div key={index} className="flex flex-col gap-4">
               {item.thinkingResponse && (
                 <div>
                   <div className="text-gray-500 font-bold">&lt;THINKING&gt;</div>
@@ -234,18 +234,16 @@ const ClaudeAnalysis = ({
               )}
               {item.move && (
                 <div className="text-green-600 font-bold">
-                  Move: {item.move.toUpperCase()}
+                  <div className="text-gray-500 font-bold">&lt;MOVE&gt;</div>
+                  <div>{item.move}</div>
+                  <div className="text-gray-500 font-bold">&lt;/MOVE&gt;</div>
                 </div>
               )}
             </div>
           ))
-        ) : (
-          <div className="text-gray-500">
-            Claude will analyze your game when you click &quot;Play AI Move&quot;
-          </div>
         )}
       </div>
-      
+
       <button 
         onClick={handleAIMove}
         disabled={isLoading || gameOver}
