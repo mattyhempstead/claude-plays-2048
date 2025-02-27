@@ -8,6 +8,13 @@
       "when": 1740621281280,
       "tag": "0000_woozy_mole_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1740625523310,
+      "tag": "0001_spicy_prowler",
+      "breakpoints": true
     }
   ]
 }

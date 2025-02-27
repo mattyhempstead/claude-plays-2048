@@ -76,4 +76,42 @@ export const gameRouter = createTRPCRouter({
         gameState: latestGameState,
       };
     }),
+
+  updateGameState: publicProcedure
+    .input(z.object({
+      gameId: z.string().uuid(),
+      board: z.array(z.number()).length(BOARD_SIZE * BOARD_SIZE),
+      score: z.number(),
+      move: z.enum(["up", "down", "left", "right"])
+    }))
+    .mutation(async ({ input }) => {
+      // Check if game exists
+      const [gameData] = await db
+        .select()
+        .from(game)
+        .where(eq(game.id, input.gameId));
+
+      if (!gameData) {
+        throw new Error("Game not found");
+      }
+
+      // Insert new game state
+      const [newGameState] = await db
+        .insert(gameState)
+        .values({
+          gameId: input.gameId,
+          board: input.board,
+          score: input.score,
+          move: input.move,
+        })
+        .returning();
+
+      if (!newGameState) {
+        throw new Error("Failed to update game state");
+      }
+
+      return {
+        gameState: newGameState,
+      };
+    }),
 });

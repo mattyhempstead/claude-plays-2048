@@ -12,6 +12,7 @@ export const useGame = () => {
   const [gameId, setGameId] = useState<string | null>(null);
 
   const createGameMutation = api.game.createGame.useMutation();
+  const updateGameStateMutation = api.game.updateGameState.useMutation();
 
   // Helper functions to safely get and set board values
   const getBoardValue = ({
@@ -297,6 +298,16 @@ export const useGame = () => {
       addRandomTile({ currentBoard: newBoard });
       setBoard(newBoard);
       setScore(newScore);
+      
+      // Update game state in the database
+      if (gameId) {
+        void updateGameStateMutation.mutateAsync({
+          gameId,
+          board: newBoard.flat(),
+          score: newScore,
+          move: direction
+        });
+      }
       
       if (checkWin({ currentBoard: newBoard })) {
         setWon(true);

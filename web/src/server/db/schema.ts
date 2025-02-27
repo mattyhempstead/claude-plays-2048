@@ -30,9 +30,9 @@ export const gameState = createTable("game_state", {
   id: uuid("id").defaultRandom().primaryKey(),
   createdAt: createdAtField,
   updatedAt: updatedAtField,
-  gameId: uuid("game_id").notNull().references(() => game.id),
+  gameId: uuid("game_id").notNull().references(() => game.id, { onDelete: "cascade" }),
   board: integer("board").array().notNull(),
-  score: integer("score").default(0).notNull(),
+  score: integer("score").notNull(),
   move: text("move", { enum: ["up", "down", "left", "right"] }),
 });
 
