@@ -35,3 +35,6 @@ export const gameState = createTable("game_state", {
   score: integer("score").default(0).notNull(),
   move: text("move", { enum: ["up", "down", "left", "right"] }),
 });
+
+export type GameSelect = typeof game.$inferSelect;
+export type GameStateSelect = typeof gameState.$inferSelect;
