@@ -56,6 +56,14 @@ export const useGame = () => {
     addRandomTile({ currentBoard: newBoard });
     addRandomTile({ currentBoard: newBoard });
     
+    // // Hardcoded board
+    // const newBoard = [
+    //   [0, 0, 0, 0],
+    //   [0, 0, 0, 0],
+    //   [0, 0, 0, 0],
+    //   [2, 2, 4, 32]
+    // ];
+
     // Convert 2D board to 1D array for API
     const flatBoard = newBoard.flat();
     
@@ -153,7 +161,7 @@ export const useGame = () => {
     
     if (direction === "left") {
       for (let i = 0; i < BOARD_SIZE; i++) {
-        // Merge tiles
+        // First, move all tiles to the left (without merging)
         for (let j = 1; j < BOARD_SIZE; j++) {
           if (getBoardValue({ board: newBoard, row: i, col: j }) !== 0) {
             let k = j;
@@ -164,17 +172,27 @@ export const useGame = () => {
               k--;
               moved = true;
             }
+          }
+        }
+        
+        // Then, merge tiles (only once per move)
+        for (let j = 0; j < BOARD_SIZE - 1; j++) {
+          const currValue = getBoardValue({ board: newBoard, row: i, col: j });
+          const nextValue = getBoardValue({ board: newBoard, row: i, col: j + 1 });
+          
+          if (currValue !== 0 && currValue === nextValue) {
+            const mergedValue = currValue * 2;
+            setBoardValue({ board: newBoard, row: i, col: j, value: mergedValue });
+            setBoardValue({ board: newBoard, row: i, col: j + 1, value: 0 });
+            newScore += mergedValue;
+            moved = true;
             
-            if (k > 0) {
-              const prevValue = getBoardValue({ board: newBoard, row: i, col: k - 1 });
-              const currValue = getBoardValue({ board: newBoard, row: i, col: k });
-              
-              if (prevValue === currValue) {
-                const mergedValue = currValue * 2;
-                setBoardValue({ board: newBoard, row: i, col: k - 1, value: mergedValue });
-                newScore += mergedValue;
+            // Shift remaining tiles to the left
+            for (let k = j + 2; k < BOARD_SIZE; k++) {
+              const value = getBoardValue({ board: newBoard, row: i, col: k });
+              if (value !== 0) {
+                setBoardValue({ board: newBoard, row: i, col: k - 1, value });
                 setBoardValue({ board: newBoard, row: i, col: k, value: 0 });
-                moved = true;
               }
             }
           }
@@ -182,7 +200,7 @@ export const useGame = () => {
       }
     } else if (direction === "right") {
       for (let i = 0; i < BOARD_SIZE; i++) {
-        // Merge tiles
+        // First, move all tiles to the right (without merging)
         for (let j = BOARD_SIZE - 2; j >= 0; j--) {
           if (getBoardValue({ board: newBoard, row: i, col: j }) !== 0) {
             let k = j;
@@ -196,17 +214,27 @@ export const useGame = () => {
               k++;
               moved = true;
             }
+          }
+        }
+        
+        // Then, merge tiles (only once per move)
+        for (let j = BOARD_SIZE - 1; j > 0; j--) {
+          const currValue = getBoardValue({ board: newBoard, row: i, col: j });
+          const prevValue = getBoardValue({ board: newBoard, row: i, col: j - 1 });
+          
+          if (currValue !== 0 && currValue === prevValue) {
+            const mergedValue = currValue * 2;
+            setBoardValue({ board: newBoard, row: i, col: j, value: mergedValue });
+            setBoardValue({ board: newBoard, row: i, col: j - 1, value: 0 });
+            newScore += mergedValue;
+            moved = true;
             
-            if (k < BOARD_SIZE - 1) {
-              const nextValue = getBoardValue({ board: newBoard, row: i, col: k + 1 });
-              const currValue = getBoardValue({ board: newBoard, row: i, col: k });
-              
-              if (nextValue === currValue) {
-                const mergedValue = currValue * 2;
-                setBoardValue({ board: newBoard, row: i, col: k + 1, value: mergedValue });
-                newScore += mergedValue;
+            // Shift remaining tiles to the right
+            for (let k = j - 2; k >= 0; k--) {
+              const value = getBoardValue({ board: newBoard, row: i, col: k });
+              if (value !== 0) {
+                setBoardValue({ board: newBoard, row: i, col: k + 1, value });
                 setBoardValue({ board: newBoard, row: i, col: k, value: 0 });
-                moved = true;
               }
             }
           }
@@ -214,7 +242,7 @@ export const useGame = () => {
       }
     } else if (direction === "up") {
       for (let j = 0; j < BOARD_SIZE; j++) {
-        // Merge tiles
+        // First, move all tiles up (without merging)
         for (let i = 1; i < BOARD_SIZE; i++) {
           if (getBoardValue({ board: newBoard, row: i, col: j }) !== 0) {
             let k = i;
@@ -228,17 +256,27 @@ export const useGame = () => {
               k--;
               moved = true;
             }
+          }
+        }
+        
+        // Then, merge tiles (only once per move)
+        for (let i = 0; i < BOARD_SIZE - 1; i++) {
+          const currValue = getBoardValue({ board: newBoard, row: i, col: j });
+          const nextValue = getBoardValue({ board: newBoard, row: i + 1, col: j });
+          
+          if (currValue !== 0 && currValue === nextValue) {
+            const mergedValue = currValue * 2;
+            setBoardValue({ board: newBoard, row: i, col: j, value: mergedValue });
+            setBoardValue({ board: newBoard, row: i + 1, col: j, value: 0 });
+            newScore += mergedValue;
+            moved = true;
             
-            if (k > 0) {
-              const aboveValue = getBoardValue({ board: newBoard, row: k - 1, col: j });
-              const currValue = getBoardValue({ board: newBoard, row: k, col: j });
-              
-              if (aboveValue === currValue) {
-                const mergedValue = currValue * 2;
-                setBoardValue({ board: newBoard, row: k - 1, col: j, value: mergedValue });
-                newScore += mergedValue;
+            // Shift remaining tiles up
+            for (let k = i + 2; k < BOARD_SIZE; k++) {
+              const value = getBoardValue({ board: newBoard, row: k, col: j });
+              if (value !== 0) {
+                setBoardValue({ board: newBoard, row: k - 1, col: j, value });
                 setBoardValue({ board: newBoard, row: k, col: j, value: 0 });
-                moved = true;
               }
             }
           }
@@ -246,7 +284,7 @@ export const useGame = () => {
       }
     } else if (direction === "down") {
       for (let j = 0; j < BOARD_SIZE; j++) {
-        // Merge tiles
+        // First, move all tiles down (without merging)
         for (let i = BOARD_SIZE - 2; i >= 0; i--) {
           if (getBoardValue({ board: newBoard, row: i, col: j }) !== 0) {
             let k = i;
@@ -260,17 +298,27 @@ export const useGame = () => {
               k++;
               moved = true;
             }
+          }
+        }
+        
+        // Then, merge tiles (only once per move)
+        for (let i = BOARD_SIZE - 1; i > 0; i--) {
+          const currValue = getBoardValue({ board: newBoard, row: i, col: j });
+          const prevValue = getBoardValue({ board: newBoard, row: i - 1, col: j });
+          
+          if (currValue !== 0 && currValue === prevValue) {
+            const mergedValue = currValue * 2;
+            setBoardValue({ board: newBoard, row: i, col: j, value: mergedValue });
+            setBoardValue({ board: newBoard, row: i - 1, col: j, value: 0 });
+            newScore += mergedValue;
+            moved = true;
             
-            if (k < BOARD_SIZE - 1) {
-              const belowValue = getBoardValue({ board: newBoard, row: k + 1, col: j });
-              const currValue = getBoardValue({ board: newBoard, row: k, col: j });
-              
-              if (belowValue === currValue) {
-                const mergedValue = currValue * 2;
-                setBoardValue({ board: newBoard, row: k + 1, col: j, value: mergedValue });
-                newScore += mergedValue;
+            // Shift remaining tiles down
+            for (let k = i - 2; k >= 0; k--) {
+              const value = getBoardValue({ board: newBoard, row: k, col: j });
+              if (value !== 0) {
+                setBoardValue({ board: newBoard, row: k + 1, col: j, value });
                 setBoardValue({ board: newBoard, row: k, col: j, value: 0 });
-                moved = true;
               }
             }
           }

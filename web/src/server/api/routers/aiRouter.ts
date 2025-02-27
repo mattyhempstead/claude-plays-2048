@@ -42,7 +42,8 @@ When you give your answer, respond with a very brief justification and the move 
 
 Recall that
  - All numbers on the board are powers of 2.
- - Moving will slide all tiles in the chosen direction and tiles will merge if they have the same number and are pushed into eachother.
+ - Moving will slide all tiles in the chosen direction.
+ - Tiles will merge if they are pushed into eachother, but only if they have the same number!
  - After a move, a new tile will appear in a random empty square with a value of either 2 (90% chance) or 4 (10% chance).
  - Moving in a direction where no tiles can slide is an invalid move and should be avoided.
 
