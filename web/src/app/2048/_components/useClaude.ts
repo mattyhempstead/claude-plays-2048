@@ -74,7 +74,7 @@ export const useClaude = () => {
   } = useClaudeStore();
   
   const { board } = useGame();
-  
+
   const generateResponseMutation = api.ai.generateClaudeResponse.useMutation({
     onMutate: () => {
       setIsThinking(false);
@@ -103,6 +103,7 @@ export const useClaude = () => {
       setIsLoading(true);
 
       // Flatten the board for the API
+      console.log("Generate response for board:", JSON.stringify(board));
       const flatBoard = board.flat();
       
       // The mutation returns an AsyncGenerator

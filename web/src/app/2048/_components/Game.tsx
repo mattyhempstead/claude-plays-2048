@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useClaude } from "./useClaude";
 import { useGame } from "./useGame";
 
@@ -17,6 +17,7 @@ export const Game = () => {
   } = useGame();
   
   const { isLoading, generateResponse, isActive, setIsActive } = useClaude();
+  const [isAutoplayRunning, setIsAutoplayRunning] = useState(false);
 
   // Handle keyboard events
   useEffect(() => {
@@ -56,13 +57,18 @@ export const Game = () => {
   // Auto-play effect
   useEffect(() => {
     const autoPlay = async () => {
-      if (!isLoading && isActive && !gameOver) {
+      if (!isLoading && isActive && !gameOver && !isAutoplayRunning) {
+        setIsAutoplayRunning(true);
         await handleAIMove();
+        
+        // Wait for 1 second before making the next move
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setIsAutoplayRunning(false);
       }
     };
 
     void autoPlay();
-  }, [isLoading, isActive, gameOver]);
+  }, [isLoading, isActive, gameOver, isAutoplayRunning]);
 
   const toggleAutoPlay = () => {
     setIsActive(!isActive);
