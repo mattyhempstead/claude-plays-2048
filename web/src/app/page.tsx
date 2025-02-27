@@ -37,9 +37,14 @@ export default function Page() {
     try {
       // The mutation returns an AsyncGenerator
       const generator = await generateResponseMutation.mutateAsync({
-        prompt: prompt,
+        board: [
+          4, 4, 0, 2,
+          2, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 2, 0, 0,
+        ],
       });
-      
+
       // Process each chunk from the generator
       for await (const chunk of generator) {
         if (chunk === "<CONTENT_START>" || chunk === "<CONTENT_END>") {
