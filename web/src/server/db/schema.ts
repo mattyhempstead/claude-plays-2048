@@ -38,5 +38,17 @@ export const gameState = createTable("game_state", {
   completed: boolean("completed").notNull(),
 });
 
+export const tokenUsage = createTable("token_usage", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  createdAt: createdAtField,
+  updatedAt: updatedAtField,
+  model: text("model", { enum: ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"] }).notNull(),
+  inputTokens: integer("input_tokens").notNull(),
+  outputTokens: integer("output_tokens").notNull(),
+  cacheCreationInputTokens: integer("cache_creation_input_tokens").notNull(),
+  cacheReadInputTokens: integer("cache_read_input_tokens").notNull(),
+});
+
 export type GameSelect = typeof game.$inferSelect;
 export type GameStateSelect = typeof gameState.$inferSelect;
+export type TokenUsageSelect = typeof tokenUsage.$inferSelect;

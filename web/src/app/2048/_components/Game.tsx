@@ -99,7 +99,7 @@ export const Game = () => {
     <>
       <div className="flex items-center justify-between max-w-screen-xl mx-auto w-full mb-10">
         <div className="text-base text-gray-500 w-96">
-          Inspired by ClaudePlaysPokemon :D
+          Inspired by ClaudePlaysPokemon :)
         </div>
         <div className="flex items-center justify-center gap-4">
           <div className="relative flex items-center justify-center">
@@ -219,8 +219,8 @@ const GameSection = () => {
             </div>
 
             <div className="rounded-md bg-gray-300 p-2">
-              <div className="text-sm text-gray-700">Move</div>
-              <div className="font-bold text-xl">#{moveCount}</div>
+              <div className="text-sm text-gray-700">Moves</div>
+              <div className="font-bold text-xl">{moveCount}</div>
             </div>
 
             <div className="rounded-md bg-gray-300 p-2">
@@ -381,7 +381,7 @@ const ClaudeAnalysis = () => {
           <div className="flex flex-col gap-2">
             {moveHistory.length > 0 && (
               moveHistory.map((item, index) => (
-                <div key={index} className="flex flex-col gap-2">
+                <div key={index} className="flex flex-col gap-2 text-sm">
                   {item.thinkingResponse && (
                     <div>
                       <div className="text-gray-400 text-sm">&lt;THINKING&gt;</div>

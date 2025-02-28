@@ -1,5 +1,7 @@
 import { env } from "@/env";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+import { db } from "@/server/db";
+import { tokenUsage } from "@/server/db/schema";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
@@ -90,7 +92,7 @@ ${input.board.slice(12, 16).join(',')}
           }
 
           if (event.type === 'content_block_start') {
-            console.log(`\nStarting ${event.content_block.type} block...`);
+            // console.log(`\nStarting ${event.content_block.type} block...`);
 
             if (event.content_block.type === 'thinking') {
               isInThinkingBlock = true;
@@ -101,14 +103,14 @@ ${input.board.slice(12, 16).join(',')}
             }
           } else if (event.type === 'content_block_delta') {
             if (event.delta.type === 'thinking_delta') {
-              console.log(`Thinking: ${event.delta.thinking}`);
+              // console.log(`Thinking: ${event.delta.thinking}`);
               yield event.delta.thinking;
             } else if (event.delta.type === 'text_delta') {
-              console.log(`Response: ${event.delta.text}`);
+              // console.log(`Response: ${event.delta.text}`);
               yield event.delta.text;
             }
           } else if (event.type === 'content_block_stop') {
-            console.log('\nBlock complete.');
+            // console.log('\nBlock complete.');
 
             if (isInThinkingBlock) {
               isInThinkingBlock = false;
@@ -129,6 +131,15 @@ ${input.board.slice(12, 16).join(',')}
           output_tokens: message.usage.output_tokens,
           cache_creation_input_tokens: message.usage.cache_creation_input_tokens,
           cache_read_input_tokens: message.usage.cache_read_input_tokens
+        });
+
+        // Store token usage in the database
+        await db.insert(tokenUsage).values({
+          model: "claude-3-7-sonnet-latest",
+          inputTokens: message.usage.input_tokens,
+          outputTokens: message.usage.output_tokens,
+          cacheCreationInputTokens: message.usage.cache_creation_input_tokens ?? 0,
+          cacheReadInputTokens: message.usage.cache_read_input_tokens ?? 0,
         });
 
       } catch (error) {
@@ -208,6 +219,15 @@ ${input.answerText}
           output_tokens: response.usage.output_tokens,
           cache_creation_input_tokens: response.usage.cache_creation_input_tokens,
           cache_read_input_tokens: response.usage.cache_read_input_tokens
+        });
+
+        // Store token usage in the database
+        await db.insert(tokenUsage).values({
+          model: "claude-3-5-haiku-latest",
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+          cacheCreationInputTokens: response.usage.cache_creation_input_tokens ?? 0,
+          cacheReadInputTokens: response.usage.cache_read_input_tokens ?? 0,
         });
 
         // Find the tool use request
