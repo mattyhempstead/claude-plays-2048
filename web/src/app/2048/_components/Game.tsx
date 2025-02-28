@@ -453,9 +453,15 @@ const GameStats = () => {
     .sort((a, b) => b.piece - a.piece)
     .slice(0, 3);
 
+  // Get token usage
+  const tokenStats = stats?.tokenStats ?? {
+    inputTokens: 0,
+    outputTokens: 0
+  };
+
   return (
     <div className="p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200 w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white p-4 rounded-md shadow-sm border border-gray-100 flex flex-col items-center">
           <h3 className="text-sm font-medium text-gray-600 mb-2">Games Completed</h3>
           <p className="font-bold text-2xl text-gray-800">{stats?.gameCompletedCount ?? 0}</p>
@@ -502,6 +508,19 @@ const GameStats = () => {
               <span className="text-lg font-bold text-purple-600">→</span>
               <span className="text-sm font-medium">{getPercentage(moveFrequencies.right)}</span>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-md shadow-sm border border-gray-100 flex flex-col items-center">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Token Spend</h3>
+          <div className="flex flex-col items-center gap-1 mt-1">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-medium text-gray-600"><span className="font-bold">{tokenStats.inputTokens.toLocaleString()}</span> input</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-medium text-gray-600"><span className="font-bold">{tokenStats.outputTokens.toLocaleString()}</span> output</span>
+            </div>
+            {/* <span className="text-xs text-gray-400 mt-1">(pls anthropic donate credits)</span> */}
           </div>
         </div>
       </div>

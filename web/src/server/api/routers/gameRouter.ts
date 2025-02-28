@@ -3,8 +3,8 @@ import { z } from "zod";
 import { BOARD_SIZE } from "@/lib/constants";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
-import { game, gameState } from "@/server/db/schema";
-import { desc, eq, isNotNull } from "drizzle-orm";
+import { game, gameState, tokenUsage } from "@/server/db/schema";
+import { desc, eq, isNotNull, sum } from "drizzle-orm";
 
 export const gameRouter = createTRPCRouter({
   createGame: publicProcedure
@@ -181,11 +181,24 @@ export const gameRouter = createTRPCRouter({
         }
       });
 
+      // Get token usage statistics for the sonnet model
+      const [tokenStats] = await db
+        .select({
+          inputTokens: sum(tokenUsage.inputTokens).mapWith(Number),
+          outputTokens: sum(tokenUsage.outputTokens).mapWith(Number)
+        })
+        .from(tokenUsage)
+        .where(eq(tokenUsage.model, "claude-3-7-sonnet-latest"));
+
       return {
         gameCompletedCount: completedGames.length,
         gameScores,
         highestPieces,
-        moveFrequencies
+        moveFrequencies,
+        tokenStats: {
+          inputTokens: tokenStats?.inputTokens ?? 0,
+          outputTokens: tokenStats?.outputTokens ?? 0
+        }
       };
     }),
 });
