@@ -97,18 +97,35 @@ export const Game = () => {
 
   return (
     <>
-      <div className="flex items-center justify-center gap-4 mb-10">
-        <Image 
-          src="/anthropic_logo.png" 
-          alt="Anthropic Logo" 
-          width={100}
-          height={100}
-          className="h-10 w-auto"
-          // className="h-10 w-auto animate-[spin_60s_linear_infinite]"
-        />
-        <h1 className="text-4xl font-extrabold text-center bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-500 bg-clip-text text-transparent drop-shadow-sm animate-gradient-x">
-          Claude Plays 2048
-        </h1>
+      <div className="flex items-center justify-between max-w-screen-xl mx-auto w-full mb-10">
+        <div className="text-base text-gray-500 w-96">
+          Inspired by ClaudePlaysPokemon :D
+        </div>
+        <div className="flex items-center justify-center gap-4">
+          <div className="relative flex items-center justify-center">
+            <Image 
+              src="/anthropic_logo.png" 
+              alt="Anthropic Logo" 
+              width={100}
+              height={100}
+              className="h-8 w-auto"
+              // className="h-8 w-auto animate-[spin_60s_linear_infinite]"
+            />
+          </div>
+          <h1 className="text-4xl font-extrabold text-center text-amber-600 drop-shadow-sm">
+            Claude Plays 2048
+          </h1>
+        </div>
+        <div className="text-lg text-gray-500 hover:text-gray-700 w-96 text-right flex items-center justify-end gap-2">
+          <Image 
+            src="/twitter_logo.png" 
+            alt="Twitter Logo" 
+            width={32}
+            height={32}
+            className="h-6 w-auto"
+          />
+          <span>@mattyhempstead</span>
+        </div>
       </div>
 
       <div className="flex flex-row gap-4 w-full max-w-screen-xl">
@@ -195,7 +212,7 @@ const GameSection = () => {
             <GameBoard board={board} />
           </div>
 
-          <div className="flex flex-col gap-4 w-24">
+          <div className="flex flex-col gap-4 w-28">
             <div className="rounded-md bg-gray-300 p-2">
               <div className="text-sm text-gray-700">Score</div>
               <div className="font-bold text-xl">{score}</div>
@@ -208,7 +225,7 @@ const GameSection = () => {
 
             <div className="rounded-md bg-gray-300 p-2">
               <div className="text-sm text-gray-700">Duration</div>
-              <div className="font-bold text-xl">
+              <div className="font-bold text-xl whitespace-nowrap">
                 {gameStartDate 
                   ? (() => {
                       const diff = Math.floor((currentTime.getTime() - gameStartDate.getTime()) / 1000);
@@ -217,7 +234,7 @@ const GameSection = () => {
                       const seconds = diff % 60;
                       
                       if (hours > 0) {
-                        return `${hours}h ${minutes}m ${seconds}s`;
+                        return <span className="text-base">{`${hours}h ${minutes}m ${seconds}s`}</span>;
                       } else if (minutes > 0) {
                         return `${minutes}m ${seconds}s`;
                       } else {
@@ -358,7 +375,7 @@ const ClaudeAnalysis = () => {
       >
         <div 
           ref={responseRef}
-          className="h-[380px] overflow-y-auto font-mono whitespace-pre-wrap scrollbar-hide"
+          className="h-[364px] overflow-y-auto font-mono whitespace-pre-wrap scrollbar-hide"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           <div className="flex flex-col gap-2">
