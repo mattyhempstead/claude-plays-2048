@@ -1,0 +1,1 @@
+ALTER TABLE "claude_plays_2048_game_state" ALTER COLUMN "completed" DROP DEFAULT;

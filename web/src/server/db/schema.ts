@@ -2,6 +2,7 @@
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
 import {
+  boolean,
   integer,
   pgTableCreator,
   text,
@@ -34,6 +35,7 @@ export const gameState = createTable("game_state", {
   board: integer("board").array().notNull(),
   score: integer("score").notNull(),
   move: text("move", { enum: ["up", "down", "left", "right"] }),
+  completed: boolean("completed").notNull(),
 });
 
 export type GameSelect = typeof game.$inferSelect;

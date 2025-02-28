@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useClaude } from "./useClaude";
 import { useGame } from "./useGame";
 
+const AUTOPLAY_DELAY_MS = 1000;
+
 export const Game = () => {
   const {
     board,
@@ -62,7 +64,7 @@ export const Game = () => {
         await handleAIMove();
         
         // Wait for 1 second before making the next move
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, AUTOPLAY_DELAY_MS));
         setIsAutoplayRunning(false);
       }
     };

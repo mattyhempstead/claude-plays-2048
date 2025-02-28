@@ -1,0 +1,1 @@
+ALTER TABLE "claude_plays_2048_game_state" ADD COLUMN "completed" boolean DEFAULT false NOT NULL;

@@ -381,7 +381,8 @@ export const useGame = () => {
           gameId,
           board: newBoard.flat(),
           score: newScore,
-          move: direction
+          move: direction,
+          completed: checkGameOver({ currentBoard: newBoard })
         });
       }
       

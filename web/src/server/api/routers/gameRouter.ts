@@ -33,6 +33,7 @@ export const gameRouter = createTRPCRouter({
           board: boardToUse,
           score: 0,
           move: null,
+          completed: false,
         })
         .returning();
 
@@ -82,7 +83,8 @@ export const gameRouter = createTRPCRouter({
       gameId: z.string().uuid(),
       board: z.array(z.number()).length(BOARD_SIZE * BOARD_SIZE),
       score: z.number(),
-      move: z.enum(["up", "down", "left", "right"])
+      move: z.enum(["up", "down", "left", "right"]),
+      completed: z.boolean(),
     }))
     .mutation(async ({ input }) => {
       // Check if game exists
@@ -103,6 +105,7 @@ export const gameRouter = createTRPCRouter({
           board: input.board,
           score: input.score,
           move: input.move,
+          completed: input.completed,
         })
         .returning();
 

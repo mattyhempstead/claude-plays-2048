@@ -15,6 +15,20 @@
       "when": 1740625523310,
       "tag": "0001_spicy_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1740730352912,
+      "tag": "0002_broken_tinkerer",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1740730375773,
+      "tag": "0003_loose_thena",
+      "breakpoints": true
     }
   ]
 }
