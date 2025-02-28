@@ -19,6 +19,22 @@ export const aiRouter = createTRPCRouter({
       board: z.array(z.number()).length(16),
     }))
     .mutation(async function* ({ input }) {
+
+      // // Early exit with a fake example response for testing
+      // if (true) {
+      //   yield "<MOVE_START>";
+      //   yield "\n<THINKING>\n";
+      //   yield "This is a fake analysis\n";
+      //   yield "\n</THINKING>\n";
+      //   yield "\n<ANSWER>\n";
+      //   const directions = ["up", "right", "down", "left"];
+      //   const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+      //   yield `You should move ${randomDirection}.\n`;
+      //   yield "\n</ANSWER>\n";
+      //   yield "<MOVE_END>";
+      //   return;
+      // }
+
       try {
         const stream = anthropic.messages.stream({
           model: "claude-3-7-sonnet-latest",
@@ -126,6 +142,20 @@ ${input.board.slice(12, 16).join(',')}
       answerText: z.string(),
     }))
     .mutation(async ({ input }): Promise<Move> => {
+
+      // // Early exit by checking if the answer text contains any of the move directions
+      // if (input.answerText.toLowerCase().includes("up")) {
+      //   return "up";
+      // } else if (input.answerText.toLowerCase().includes("right")) {
+      //   return "right";
+      // } else if (input.answerText.toLowerCase().includes("down")) {
+      //   return "down";
+      // } else if (input.answerText.toLowerCase().includes("left")) {
+      //   return "left";
+      // } else {
+      //   throw new Error("No valid move direction found in the answer text");
+      // }
+
       try {
         // Define the move tool inline
 

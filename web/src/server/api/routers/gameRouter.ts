@@ -4,7 +4,7 @@ import { BOARD_SIZE } from "@/lib/constants";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import { db } from "@/server/db";
 import { game, gameState } from "@/server/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNotNull } from "drizzle-orm";
 
 export const gameRouter = createTRPCRouter({
   createGame: publicProcedure
@@ -115,6 +115,77 @@ export const gameRouter = createTRPCRouter({
 
       return {
         gameState: newGameState,
+      };
+    }),
+
+  getGameStats: publicProcedure
+    .query(async () => {
+      // Get count of completed games
+      const completedGames = await db
+        .select({
+          gameId: gameState.gameId
+        })
+        .from(gameState)
+        .where(eq(gameState.completed, true))
+        .groupBy(gameState.gameId);
+
+      // Get scores of completed games, ordered from highest to lowest
+      const completedGameScores = await db
+        .select({
+          score: gameState.score
+        })
+        .from(gameState)
+        .where(eq(gameState.completed, true))
+        .orderBy(desc(gameState.score));
+
+      // Extract just the score values into an array
+      const gameScores = completedGameScores.map(game => game.score);
+
+      // Get highest pieces reached in completed games
+      const completedGameStates = await db
+        .select({
+          gameId: gameState.gameId,
+          board: gameState.board
+        })
+        .from(gameState)
+        .where(eq(gameState.completed, true));
+
+      // Calculate highest piece for each completed game
+      const highestPieces = completedGameStates.map(state => {
+        // Find the maximum value in the board array
+        return Math.max(...state.board);
+      });
+
+      // Count all moves by direction
+      const allMoves = await db
+        .select({
+          move: gameState.move
+        })
+        .from(gameState)
+        .where(
+          // Only include records with a valid move (not null)
+          isNotNull(gameState.move)
+        );
+
+      // Calculate move frequencies
+      const moveFrequencies = {
+        up: 0,
+        down: 0,
+        left: 0,
+        right: 0
+      };
+
+      allMoves.forEach(record => {
+        if (record.move) {
+          moveFrequencies[record.move]++;
+        }
+      });
+
+      return {
+        gameCompletedCount: completedGames.length,
+        gameScores,
+        highestPieces,
+        moveFrequencies
       };
     }),
 });

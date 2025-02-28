@@ -89,108 +89,91 @@ export const useClaude = () => {
     },
   });
 
-  const extractMoveMutation = api.ai.extractClaudeMove.useMutation({
-    onMutate: () => {
-      setIsExtractingMove(true);
-    },
-    onSettled: () => {
-      setIsExtractingMove(false);
-    },
-  });
+  const extractMoveMutation = api.ai.extractClaudeMove.useMutation({});
 
   const generateResponse = async () => {
-    try {
-      setIsLoading(true);
+    setIsLoading(true);
 
-      // Flatten the board for the API
-      console.log("Generate response for board:", JSON.stringify(board));
-      const flatBoard = board.flat();
+    // Flatten the board for the API
+    console.log("Generate response for board:", JSON.stringify(board));
+    const flatBoard = board.flat();
+    
+    // The mutation returns an AsyncGenerator
+    const generator = await generateResponseMutation.mutateAsync({
+      board: flatBoard,
+    });
+
+    let answerText = "";
+    let thinkingText = "";
+    let isInAnswerBlock = false;
+    let isInThinkingBlock = false;
+    
+    // Create a new history item for this move
+    const currentMoveIndex = addMoveHistoryItem();
+
+    // Process each chunk from the generator
+    for await (const chunk of generator) {
+      // Check if this is a thinking chunk start
+      if (chunk === "\n<THINKING>\n") {
+        setIsThinking(true);
+        isInThinkingBlock = true;
+        continue;
+      }
       
-      // The mutation returns an AsyncGenerator
-      const generator = await generateResponseMutation.mutateAsync({
-        board: flatBoard,
-      });
-
-      let answerText = "";
-      let thinkingText = "";
-      let isInAnswerBlock = false;
-      let isInThinkingBlock = false;
-      
-      // Create a new history item for this move
-      const currentMoveIndex = addMoveHistoryItem();
-
-      // Process each chunk from the generator
-      for await (const chunk of generator) {
-        // Check if this is a thinking chunk start
-        if (chunk === "\n<THINKING>\n") {
-          setIsThinking(true);
-          isInThinkingBlock = true;
-          continue;
-        }
-        
-        // Check if thinking has ended
-        if (chunk === "\n</THINKING>\n") {
-          setIsThinking(false);
-          isInThinkingBlock = false;
-          continue;
-        }
-
-        // Check if we're entering the answer block
-        if (chunk === "\n<ANSWER>\n") {
-          setIsAnswering(true);
-          isInAnswerBlock = true;
-          continue;
-        }
-
-        // Check if we're exiting the answer block
-        if (chunk === "\n</ANSWER>\n") {
-          setIsAnswering(false);
-          isInAnswerBlock = false;
-          continue;
-        }
-        
-        // If we're in the answer block, collect the text
-        if (isInAnswerBlock) {
-          answerText += chunk;
-          // Update the answer response in history
-          updateMoveHistoryItem(currentMoveIndex, { answerResponse: answerText });
-        }
-        
-        // If we're in the thinking block, collect the text
-        if (isInThinkingBlock) {
-          thinkingText += chunk;
-          // Update the thinking response in history
-          updateMoveHistoryItem(currentMoveIndex, { thinkingResponse: thinkingText });
-        }
+      // Check if thinking has ended
+      if (chunk === "\n</THINKING>\n") {
+        setIsThinking(false);
+        isInThinkingBlock = false;
+        continue;
       }
 
-      // Extract the move from the answer text
-      if (answerText) {
-        try {
-          const move = await extractMoveMutation.mutateAsync({ answerText });
-          
-          // Update the move in history
-          if (move) {
-            updateMoveHistoryItem(currentMoveIndex, { move: move });
-          }
-          
-          // Now that everything is complete, set isLoading to false
-          setIsLoading(false);
-          return { move };
-        } catch (error) {
-          setIsLoading(false);
-          console.error("Error extracting move:", error);
-          return { move: null };
-        }
+      // Check if we're entering the answer block
+      if (chunk === "\n<ANSWER>\n") {
+        setIsAnswering(true);
+        isInAnswerBlock = true;
+        continue;
       }
 
-      setIsLoading(false);
-      return { move: null };
-    } catch (error) {
-      setIsLoading(false);
-      console.error("Error streaming response:", error);
-      return { move: null };
+      // Check if we're exiting the answer block
+      if (chunk === "\n</ANSWER>\n") {
+        setIsAnswering(false);
+        isInAnswerBlock = false;
+        continue;
+      }
+      
+      // If we're in the answer block, collect the text
+      if (isInAnswerBlock) {
+        answerText += chunk;
+        // Update the answer response in history
+        updateMoveHistoryItem(currentMoveIndex, { answerResponse: answerText });
+      }
+      
+      // If we're in the thinking block, collect the text
+      if (isInThinkingBlock) {
+        thinkingText += chunk;
+        // Update the thinking response in history
+        updateMoveHistoryItem(currentMoveIndex, { thinkingResponse: thinkingText });
+      }
     }
+
+    // Extract the move from the answer text
+    if (!answerText) {
+      setIsLoading(false);
+      throw new Error("No answer text found in response.");
+    }
+
+    setIsExtractingMove(true);
+    const move = await extractMoveMutation.mutateAsync({ answerText });
+    setIsExtractingMove(false);
+    
+    // Update the move in history
+    if (move) {
+      updateMoveHistoryItem(currentMoveIndex, { move: move });
+    }
+    
+    // Now that everything is complete, set isLoading to false
+    setIsLoading(false);
+    return { move };
   };
 
   // Get only the last 3 items from the move history

@@ -12,25 +12,33 @@ type GameState = {
   gameOver: boolean;
   gameId: string | null;
   moveCount: number;
+  gameStartDate: Date | null;
+  previousMove: MoveDirection | null;
   setBoard: (board: number[][]) => void;
   setScore: (score: number) => void;
   setGameOver: (gameOver: boolean) => void;
   setGameId: (gameId: string | null) => void;
   setMoveCount: (moveCount: number) => void;
+  setGameStartDate: (date: Date | null) => void;
+  setPreviousMove: (move: MoveDirection | null) => void;
   incrementMoveCount: () => void;
 };
 
 const useGameStore = create<GameState>((set) => ({
   board: [],
   score: 0,
-  gameOver: false,
+  gameOver: true,
   gameId: null,
   moveCount: 0,
+  gameStartDate: null,
+  previousMove: null,
   setBoard: (board) => set({ board }),
   setScore: (score) => set({ score }),
   setGameOver: (gameOver) => set({ gameOver }),
   setGameId: (gameId) => set({ gameId }),
   setMoveCount: (moveCount) => set({ moveCount }),
+  setGameStartDate: (date) => set({ gameStartDate: date }),
+  setPreviousMove: (move) => set({ previousMove: move }),
   incrementMoveCount: () => set((state) => ({ moveCount: state.moveCount + 1 })),
 }));
 
@@ -41,16 +49,21 @@ export const useGame = () => {
     gameOver,
     gameId,
     moveCount,
+    gameStartDate,
+    previousMove,
     setBoard,
     setScore,
     setGameOver,
     setGameId,
     setMoveCount,
+    setGameStartDate,
+    setPreviousMove,
     incrementMoveCount
   } = useGameStore();
 
   const createGameMutation = api.game.createGame.useMutation();
   const updateGameStateMutation = api.game.updateGameState.useMutation();
+  const utils = api.useUtils();
 
   // Helper functions to safely get and set board values
   const getBoardValue = ({
@@ -115,11 +128,15 @@ export const useGame = () => {
       // Store the game ID
       setGameId(result.gameId);
       
+      // Store the game start date from the initial game state
+      setGameStartDate(new Date(result.gameState.createdAt));
+      
       // Update local state
       setBoard(newBoard);
       setScore(0);
       setMoveCount(0);
       setGameOver(false);
+      setPreviousMove(null);
     } catch (error) {
       console.error("Failed to create game:", error);
       
@@ -128,6 +145,8 @@ export const useGame = () => {
       setScore(0);
       setMoveCount(0);
       setGameOver(false);
+      setGameStartDate(null);
+      setPreviousMove(null);
     }
   };
 
@@ -372,6 +391,7 @@ export const useGame = () => {
       setBoard(newBoard);
       setScore(newScore);
       incrementMoveCount();
+      setPreviousMove(direction);
       
       // Update game state in the database
       if (gameId) {
@@ -392,8 +412,10 @@ export const useGame = () => {
     }
   };
 
-  const newGame = () => {
-    void initializeGame();
+  const newGame = async () => {
+    await initializeGame();
+    // Invalidate game states after initializing a new game
+    await utils.game.getGameStats.invalidate();
   };
 
   return {
@@ -402,6 +424,8 @@ export const useGame = () => {
     gameOver,
     gameId,
     moveCount,
+    gameStartDate,
+    previousMove,
     move,
     newGame,
   };
