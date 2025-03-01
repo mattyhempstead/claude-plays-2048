@@ -20,6 +20,12 @@ export const aiRouter = createTRPCRouter({
   generateClaudeResponse: publicProcedure
     .input(z.object({
       board: z.array(z.number()).length(16),
+      allowedMoves: z.object({
+        up: z.boolean(),
+        right: z.boolean(),
+        down: z.boolean(),
+        left: z.boolean()
+      })
     }))
     .mutation(async function* ({ input }) {
 
@@ -77,6 +83,12 @@ ${input.board.slice(4, 8).join(',')}
 ${input.board.slice(8, 12).join(',')}
 ${input.board.slice(12, 16).join(',')}
 </BOARD>
+
+Only the following moves are valid on this board:
+${input.allowedMoves.up ? "- up\n" : ""}\
+${input.allowedMoves.right ? "- right\n" : ""}\
+${input.allowedMoves.down ? "- down\n" : ""}\
+${input.allowedMoves.left ? "- left\n" : ""}\
 `
           }]
         });

@@ -196,9 +196,8 @@ const GameSection = () => {
     moveCount,
     gameStartDate,
     previousMove,
-    move
   } = useGame();
-  
+
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Update current time every second for duration calculation

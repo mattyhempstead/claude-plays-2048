@@ -6,6 +6,13 @@ import { create } from "zustand";
 
 type MoveDirection = "up" | "down" | "left" | "right";
 
+type AllowedMoves = {
+  up: boolean;
+  right: boolean;
+  down: boolean;
+  left: boolean;
+};
+
 type GameState = {
   board: number[][];
   score: number;
@@ -212,6 +219,91 @@ export const useGame = () => {
     }
     
     return true;
+  };
+
+  const canMoveLeft = (currentBoard: number[][]): boolean => {
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 1; j < BOARD_SIZE; j++) {
+        const current = getBoardValue({ board: currentBoard, row: i, col: j });
+        if (current !== 0) {
+          // Check if there's an empty space to the left
+          if (getBoardValue({ board: currentBoard, row: i, col: j - 1 }) === 0) {
+            return true;
+          }
+          // Check if there's a tile with the same value to the left
+          if (getBoardValue({ board: currentBoard, row: i, col: j - 1 }) === current) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  const canMoveRight = (currentBoard: number[][]): boolean => {
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE - 1; j++) {
+        const current = getBoardValue({ board: currentBoard, row: i, col: j });
+        if (current !== 0) {
+          // Check if there's an empty space to the right
+          if (getBoardValue({ board: currentBoard, row: i, col: j + 1 }) === 0) {
+            return true;
+          }
+          // Check if there's a tile with the same value to the right
+          if (getBoardValue({ board: currentBoard, row: i, col: j + 1 }) === current) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  const canMoveUp = (currentBoard: number[][]): boolean => {
+    for (let i = 1; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        const current = getBoardValue({ board: currentBoard, row: i, col: j });
+        if (current !== 0) {
+          // Check if there's an empty space above
+          if (getBoardValue({ board: currentBoard, row: i - 1, col: j }) === 0) {
+            return true;
+          }
+          // Check if there's a tile with the same value above
+          if (getBoardValue({ board: currentBoard, row: i - 1, col: j }) === current) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  const canMoveDown = (currentBoard: number[][]): boolean => {
+    for (let i = 0; i < BOARD_SIZE - 1; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        const current = getBoardValue({ board: currentBoard, row: i, col: j });
+        if (current !== 0) {
+          // Check if there's an empty space below
+          if (getBoardValue({ board: currentBoard, row: i + 1, col: j }) === 0) {
+            return true;
+          }
+          // Check if there's a tile with the same value below
+          if (getBoardValue({ board: currentBoard, row: i + 1, col: j }) === current) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  const getAllowedMoves = (): AllowedMoves => {
+    return {
+      up: canMoveUp(board),
+      right: canMoveRight(board),
+      down: canMoveDown(board),
+      left: canMoveLeft(board)
+    };
   };
 
   const move = (direction: "up" | "down" | "left" | "right") => {
@@ -428,5 +520,6 @@ export const useGame = () => {
     previousMove,
     move,
     newGame,
+    allowedMoves: getAllowedMoves(),
   };
 };

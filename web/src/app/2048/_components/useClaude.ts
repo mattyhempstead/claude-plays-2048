@@ -75,7 +75,7 @@ export const useClaude = () => {
     updateMoveHistoryItem
   } = useClaudeStore();
   
-  const { board } = useGame();
+  const { board, allowedMoves } = useGame();
 
   const generateResponseMutation = api.ai.generateClaudeResponse.useMutation();
   const extractMoveMutation = api.ai.extractClaudeMove.useMutation();
@@ -94,6 +94,7 @@ export const useClaude = () => {
       // The mutation returns an AsyncGenerator
       const generator = await generateResponseMutation.mutateAsync({
         board: flatBoard,
+        allowedMoves: allowedMoves,
       });
 
       let answerText = "";
