@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { tokenUsage } from "@/server/db/schema";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { sendNotification } from "./sendNotification";
 
 const STREAM_CHUNK_DELAY_MS = 500;
 
@@ -148,6 +149,10 @@ ${input.board.slice(12, 16).join(',')}
 
       } catch (error) {
         console.error("Error generating Claude response:", error);
+        await sendNotification({
+          message: `Error generating Claude response.`
+        });
+
         throw error;
       }
     }),
