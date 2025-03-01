@@ -59,12 +59,12 @@ Do not spend too long thinking about the board, try to quickly determine the bes
 When you give your answer, respond with a very brief justification and the move to make.
 
 Recall that
- - All numbers on the board are powers of 2.
- - Moving will slide all tiles in the chosen direction.
- - Tiles will merge if they are pushed into eachother, but only if they have the same number!
- - A tile can only merge once per move. This means a tile that is created by merging will not merge with another tile on the same move.
- - After a move, a new tile will appear in a random empty square with a value of either 2 (90% chance) or 4 (10% chance).
- - Moving in a direction where no tiles can slide is an invalid move and should be avoided.
+- All numbers on the board are powers of 2.
+- Moving will slide all tiles in the chosen direction.
+- Tiles will merge if they are pushed into eachother, but only if they have the same number!
+- A tile can only merge once per move. This means a tile that is created by merging will not merge with another tile on the same move.
+- After a move, a new tile will appear in a random empty square with a value of either 2 (90% chance) or 4 (10% chance).
+- Moving in a direction where no tiles can slide is an invalid move and should be avoided.
 
 The board is a 4x4 grid that is shown below.
 Each square in the grid is a number and commas are used to separate the numbers in each row.
@@ -86,6 +86,8 @@ ${input.board.slice(12, 16).join(',')}
         let isInAnswerBlock = false;
 
         for await (const event of stream) {
+          console.log("EVENT", event);
+
           // Add a small delay to avoid overwhelming the client
           if (STREAM_CHUNK_DELAY_MS > 0) {
             await new Promise(resolve => setTimeout(resolve, STREAM_CHUNK_DELAY_MS));
@@ -142,9 +144,11 @@ ${input.board.slice(12, 16).join(',')}
           cacheReadInputTokens: message.usage.cache_read_input_tokens ?? 0,
         });
 
+        // throw new Error("TEST ERROR");
+
       } catch (error) {
         console.error("Error generating Claude response:", error);
-        yield `Error: ${error instanceof Error ? error.message : String(error)}`;
+        throw error;
       }
     }),
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { ERROR_SLEEP_SECONDS } from "@/lib/constants";
 import { api } from "@/trpc/react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, RotateCcw } from "lucide-react";
 import Image from "next/image";
@@ -71,7 +72,12 @@ export const Game = () => {
       await newGame();
     } else {
       const result = await generateResponse();
-      move(result.move);
+      if (result.error) {
+        // Wait for 10 seconds before trying again
+        await new Promise(resolve => setTimeout(resolve, ERROR_SLEEP_SECONDS * 1000));
+      } else {
+        move(result.move);
+      }
     }
   };
 
@@ -382,6 +388,15 @@ const ClaudeAnalysis = () => {
             {moveHistory.length > 0 && (
               moveHistory.map((item, index) => (
                 <div key={index} className="flex flex-col gap-2 text-sm">
+                  {item.error && (
+                    <div>
+                      <div className="text-gray-400 text-sm">&lt;ERROR&gt;</div>
+                      <div className="text-red-500 whitespace-pre-wrap">
+                        {item.error}
+                      </div>
+                      <div className="text-gray-400 text-sm">&lt;/ERROR&gt;</div>
+                    </div>
+                  )}
                   {item.thinkingResponse && (
                     <div>
                       <div className="text-gray-400 text-sm">&lt;THINKING&gt;</div>
