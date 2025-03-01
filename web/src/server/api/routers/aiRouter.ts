@@ -254,7 +254,11 @@ ${input.answerText}
         const parsedInput = moveSchema.parse(toolUseBlock.input);
         return parsedInput.move;
       } catch (error) {
-        console.error("Error generating Claude move:", error);
+        console.error("Error extracting Claude move:", error);
+        await sendNotification({
+          message: `Error extracting Claude move.`
+        });
+
         throw error;
       }
     }),
