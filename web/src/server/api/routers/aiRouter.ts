@@ -7,6 +7,8 @@ import { z } from "zod";
 import { sendNotification } from "./sendNotification";
 
 const STREAM_CHUNK_DELAY_MS = 500;
+const CLAUDE_SONNET_MODEL = "claude-3-7-sonnet-latest";
+const CLAUDE_HAIKU_MODEL = "claude-3-5-haiku-latest";
 
 const anthropic = new Anthropic({
   apiKey: env.ANTHROPIC_API_KEY,
@@ -46,7 +48,7 @@ export const aiRouter = createTRPCRouter({
 
       try {
         const stream = anthropic.messages.stream({
-          model: "claude-3-7-sonnet-latest",
+          model: CLAUDE_SONNET_MODEL,
           max_tokens: 2048,
           thinking: {
             type: "enabled",
@@ -150,7 +152,7 @@ ${input.allowedMoves.left ? "- left\n" : ""}\
 
         // Store token usage in the database
         await db.insert(tokenUsage).values({
-          model: "claude-3-7-sonnet-latest",
+          model: CLAUDE_SONNET_MODEL,
           inputTokens: message.usage.input_tokens,
           outputTokens: message.usage.output_tokens,
           cacheCreationInputTokens: message.usage.cache_creation_input_tokens ?? 0,
@@ -189,82 +191,46 @@ ${input.allowedMoves.left ? "- left\n" : ""}\
       // }
 
       try {
-        // Define the move tool inline
+        // First try with haiku model
+        try {
+          const response = await extractClaudeMove({
+            answerText: input.answerText, 
+            model: CLAUDE_HAIKU_MODEL
+          });
 
-        // Create a message with system prompt to make the tool call
-        const response = await anthropic.messages.create({
-          model: "claude-3-5-haiku-latest",
-          max_tokens: 1024,
-          system: `\
-You extract the move direction from the provided response.
+          // Store token usage in the database
+          await db.insert(tokenUsage).values({
+            model: CLAUDE_HAIKU_MODEL,
+            inputTokens: response.usage.input_tokens,
+            outputTokens: response.usage.output_tokens,
+            cacheCreationInputTokens: response.usage.cache_creation_input_tokens ?? 0,
+            cacheReadInputTokens: response.usage.cache_read_input_tokens ?? 0,
+          });
 
-The response will ask for one of the following:
-- "up"
-- "right"
-- "down"
-- "left"
-          `,
-          tools: [{
-            name: "submit_move",
-            description: "Submit the suggested move direction.",
-            input_schema: {
-              type: "object",
-              properties: {
-                move: {
-                  type: "string",
-                  enum: ["up", "right", "down", "left"],
-                  description: "The direction to move"
-                }
-              },
-              required: ["move"]
-            }
-          }],
-          tool_choice: {
-            type: "tool",
-            name: "submit_move"
-          },
-          messages: [{
-            role: "user",
-            content: `\
-Extract the move direction from the following response:
+          return response.move;
+        } catch (haikuError) {
+          // await sendNotification({
+          //   message: `Error extracting Claude move with haiku model, falling back to sonnet 3.7 model.`
+          // });
+          console.error("Error with haiku model, falling back to sonnet:", haikuError);
+          
+          // Fall back to sonnet model
+          const response = await extractClaudeMove({
+            answerText: input.answerText, 
+            model: CLAUDE_SONNET_MODEL
+          });
 
-<RESPONSE>
-${input.answerText}
-</RESPONSE>
-`
-          }]
-        });
+          // Store token usage in the database
+          await db.insert(tokenUsage).values({
+            model: CLAUDE_SONNET_MODEL,
+            inputTokens: response.usage.input_tokens,
+            outputTokens: response.usage.output_tokens,
+            cacheCreationInputTokens: response.usage.cache_creation_input_tokens ?? 0,
+            cacheReadInputTokens: response.usage.cache_read_input_tokens ?? 0,
+          });
 
-        console.log("MOVE USAGE", {
-          input_tokens: response.usage.input_tokens,
-          output_tokens: response.usage.output_tokens,
-          cache_creation_input_tokens: response.usage.cache_creation_input_tokens,
-          cache_read_input_tokens: response.usage.cache_read_input_tokens
-        });
-
-        // Store token usage in the database
-        await db.insert(tokenUsage).values({
-          model: "claude-3-5-haiku-latest",
-          inputTokens: response.usage.input_tokens,
-          outputTokens: response.usage.output_tokens,
-          cacheCreationInputTokens: response.usage.cache_creation_input_tokens ?? 0,
-          cacheReadInputTokens: response.usage.cache_read_input_tokens ?? 0,
-        });
-
-        // Find the tool use request
-        const toolUseBlock = response.content.find(block => block.type === "tool_use");
-        
-        if (!toolUseBlock || toolUseBlock.type !== "tool_use") {
-          throw new Error("No tool use request received");
+          return response.move;
         }
-
-        // Define Zod schema for the tool input inline and extract the move direction
-        const moveSchema = z.object({
-          move: MoveEnum
-        });
-        
-        const parsedInput = moveSchema.parse(toolUseBlock.input);
-        return parsedInput.move;
       } catch (error) {
         console.error("Error extracting Claude move:", error);
         await sendNotification({
@@ -275,3 +241,83 @@ ${input.answerText}
       }
     }),
 });
+
+/**
+ * Extracts a move direction from Claude's answer text
+ */
+const extractClaudeMove = async ({
+  answerText,
+  model
+}: {
+  answerText: string;
+  model: typeof CLAUDE_HAIKU_MODEL | typeof CLAUDE_SONNET_MODEL;
+}): Promise<{ move: Move; usage: Anthropic.Messages.Usage }> => {
+  // Create a message with system prompt to make the tool call
+  const response = await anthropic.messages.create({
+    model: model,
+    max_tokens: 1024,
+    system: `\
+You extract the move direction from the provided response.
+
+The response will ask for one of the following:
+- "up"
+- "right"
+- "down"
+- "left"
+    `,
+    tools: [{
+      name: "submit_move",
+      description: "Submit the suggested move direction.",
+      input_schema: {
+        type: "object",
+        properties: {
+          move: {
+            type: "string",
+            enum: ["up", "right", "down", "left"],
+            description: "The direction to move"
+          }
+        },
+        required: ["move"]
+      }
+    }],
+    tool_choice: {
+      type: "tool",
+      name: "submit_move"
+    },
+    messages: [{
+      role: "user",
+      content: `\
+Extract the move direction from the following response:
+
+<RESPONSE>
+${answerText}
+</RESPONSE>
+`
+    }]
+  });
+
+  console.log("MOVE USAGE", {
+    input_tokens: response.usage.input_tokens,
+    output_tokens: response.usage.output_tokens,
+    cache_creation_input_tokens: response.usage.cache_creation_input_tokens,
+    cache_read_input_tokens: response.usage.cache_read_input_tokens
+  });
+
+  // Find the tool use request
+  const toolUseBlock = response.content.find(block => block.type === "tool_use");
+  
+  if (!toolUseBlock || toolUseBlock.type !== "tool_use") {
+    throw new Error("No tool use request received");
+  }
+
+  // Define Zod schema for the tool input inline and extract the move direction
+  const moveSchema = z.object({
+    move: MoveEnum
+  });
+  
+  const parsedInput = moveSchema.parse(toolUseBlock.input);
+  return { 
+    move: parsedInput.move,
+    usage: response.usage
+  };
+};
