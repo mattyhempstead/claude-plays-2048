@@ -12,7 +12,4 @@ In that time, Claude finished 15 games and the best it did was the 256 tile.
 
 The whole process was streamed on Twitch to around 300 unique viewers.
 
-<video width="100%" controls>
-  <source src="claude-plays-2048-timelapse.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+![Claude Plays 2048 Timelapse](claude-plays-2048-timelapse.gif)
