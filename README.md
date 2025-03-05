@@ -1,6 +1,6 @@
 # Claude Plays 2048
 
-I got Claude to play the game [2048](https://play2048.co/).
+I got Claude Sonnet 3.7 (with reasoning) to play the game [2048](https://play2048.co/).
 
 Inspired by [Claude Plays Pokemon](https://www.twitch.tv/claudeplayspokemon).
 
